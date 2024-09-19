@@ -7,7 +7,12 @@ from threading import Thread
 import time
 
 
-def capture_and_downscale(device_id, downscale_resolution, frame_skip, process_queue):
+def capture_and_downscale(
+        device_id: int,
+        downscale_resolution: tuple[int, int],
+        frame_skip: int,
+        process_queue: ProcessQueue
+) -> None:
     cap = cv2.VideoCapture(device_id)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
@@ -32,7 +37,7 @@ def capture_and_downscale(device_id, downscale_resolution, frame_skip, process_q
             print(f"Queue is full. Skipping frame from device {device_id}")
 
 
-def process_frame(frame_data):
+def process_frame(frame_data: tuple[int, cv2.typing.MatLike]) -> tuple[int, str]:
     device_id, frame = frame_data
     # Stub for CV processing
     # Implement your CV logic here
@@ -40,7 +45,7 @@ def process_frame(frame_data):
     return device_id, "Processed data"
 
 
-def process_frames(process_queue, stop_event):
+def process_frames(process_queue: ProcessQueue, stop_event: Event) -> None:
     while not stop_event.is_set():
         try:
             frame_data = process_queue.get(timeout=1)
@@ -52,7 +57,7 @@ def process_frames(process_queue, stop_event):
             continue
 
 
-def main(_args: argparse.Namespace):
+def main(_args: argparse.Namespace) -> None:
     num_devices = 6  # Number of HDMI inputs
 
     # Create a process queue for frame processing
