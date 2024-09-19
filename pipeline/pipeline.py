@@ -1,9 +1,8 @@
 import cv2
 import numpy as np
 import argparse
-from multiprocessing import Pool, cpu_count, Queue as ProcessQueue, Event
+from multiprocessing import Process, Queue as ProcessQueue, Event
 from queue import Full, Empty
-from threading import Thread
 import time
 from typing import Optional, Tuple, Union
 
@@ -24,8 +23,8 @@ def capture_and_process(
     if isinstance(source, int):  # Real device
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
-    # else:  # Video file
-    frame_time = 1 / fps if fps else 0
+    else:  # Video file
+        frame_time = 1 / fps if fps else 0
 
     frame_count = 0
     while True:
@@ -46,7 +45,7 @@ def capture_and_process(
 
         # Try to put the frame in the queue, if it's full, skip this frame
         try:
-            process_queue.put((device_id, downscaled), block=False)
+            process_queue.put((device_id, frame_count, downscaled), block=False)
         except Full:
             print(f"Queue is full. Skipping frame from device {device_id}")
 
@@ -54,21 +53,15 @@ def capture_and_process(
             time.sleep(frame_time)  # Simulate real-time capture
 
 
-def process_frame(frame_data: Tuple[int, cv2.typing.MatLike]) -> Tuple[int, str]:
-    device_id, frame = frame_data
-    # Stub for CV processing
-    # Implement your CV logic here
-    # time.sleep(0.0001)  # Simulate processing time
-    return device_id, frame
-
-
 def process_frames(process_queue: ProcessQueue, stop_event: Event, display: bool) -> None:
     while not stop_event.is_set():
         try:
-            frame_data = process_queue.get(timeout=1)
-            result = process_frame(frame_data)
-            device_id, frame = result
-            print(f"Processed frame {frame_data[0]} from device {device_id}")
+            device_id, frame_count, frame = process_queue.get(timeout=1)
+            # Stub for CV processing
+            # Implement your CV logic here
+            # time.sleep(0.01)  # Simulate processing time
+
+            print(f"Processed frame {frame_count} from device {device_id}")
 
             if display:
                 # Display the frame
@@ -78,6 +71,7 @@ def process_frames(process_queue: ProcessQueue, stop_event: Event, display: bool
         except Empty:
             continue
 
+
 def main(args: argparse.Namespace) -> None:
     # Create a process queue for frame processing
     process_queue = ProcessQueue(maxsize=args.queue_size)
@@ -85,17 +79,21 @@ def main(args: argparse.Namespace) -> None:
     # Create an event to signal process termination
     stop_event = Event()
 
-    # Create a pool of worker processes for CV tasks
-    pool = Pool(processes=args.threads, initializer=process_frames, initargs=(process_queue, stop_event, args.display))
-
-    # Create and start capture threads
-    capture_threads = []
+    # Create and start capture processes
+    capture_processes = []
     for i in range(args.num_devices):
         source = args.video_file if args.video_file else i
-        thread = Thread(target=capture_and_process,
-                        args=(source, i, args.resolution, args.frame_skip, process_queue, args.fps))
-        thread.start()
-        capture_threads.append(thread)
+        process = Process(target=capture_and_process,
+                          args=(source, i, args.resolution, args.frame_skip, process_queue, args.fps))
+        process.start()
+        capture_processes.append(process)
+
+    # Create and start frame processing processes
+    processing_processes = []
+    for _ in range(args.threads):
+        process = Process(target=process_frames, args=(process_queue, stop_event, args.display))
+        process.start()
+        processing_processes.append(process)
 
     # Main loop
     try:
@@ -106,12 +104,11 @@ def main(args: argparse.Namespace) -> None:
 
     # Clean up
     stop_event.set()
-    pool.close()
-    pool.join()
-    for thread in capture_threads:
-        thread.join()
+    for process in capture_processes + processing_processes:
+        process.join()
 
-    cv2.destroyAllWindows()
+    if args.display:
+        cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":
@@ -122,11 +119,11 @@ if __name__ == "__main__":
                         default=(640, 360), help="Downscale resolution (width x height)")
     parser.add_argument("--frame-skip", type=int, default=0,
                         help="Number of frames to skip between processed frames")
-    parser.add_argument("--threads", type=int, default=cpu_count(),
+    parser.add_argument("--threads", type=int, default=2,
                         help="Number of processing threads")
     parser.add_argument("--queue-size", type=int, default=100,
                         help="Maximum size of the processing queue")
-    parser.add_argument("--num-devices", type=int, default=6,
+    parser.add_argument("--num-devices", type=int, default=2,
                         help="Number of capture devices or emulated streams")
     parser.add_argument("--fps", type=float, default=60.0,
                         help="Frames per second for video emulation (only used with --video-file)")
