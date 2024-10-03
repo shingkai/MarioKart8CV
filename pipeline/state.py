@@ -5,8 +5,6 @@ from enum import Enum
 
 import redis
 import pika
-from kafka import KafkaProducer
-
 
 class Item(Enum):
     BANANA = 1
@@ -86,8 +84,3 @@ def publish_to_redis(redis_client: redis.Redis, channel: str, message: StateMess
 # Option 2: RabbitMQ
 def publish_to_rabbitmq(channel: pika.channel.Channel, routing_key: str, message: StateMessage):
     channel.basic_publish(exchange='', routing_key=routing_key, body=message.to_json())
-
-
-# Option 3: Apache Kafka
-def publish_to_kafka(producer: KafkaProducer, topic: str, message: StateMessage):
-    producer.send(topic, value=message.to_json().encode('utf-8'))

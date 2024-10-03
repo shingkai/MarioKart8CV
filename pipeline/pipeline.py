@@ -9,11 +9,10 @@ import time
 from typing import Optional, Tuple, Union
 
 import state
-from state import StateMessage, publish_to_redis, publish_to_rabbitmq, publish_to_kafka
+from state import StateMessage, publish_to_redis, publish_to_rabbitmq
 
 import redis
 import pika
-from kafka import KafkaProducer
 
 
 def capture_and_process(
