@@ -1,5 +1,3 @@
-# File: aggregator/aggregator.py
-
 import argparse
 import json
 import redis
