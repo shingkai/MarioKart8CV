@@ -1,6 +1,6 @@
 import logging
 from enum import Enum
-
+import os
 import cv2
 import argparse
 from multiprocessing import Process, Queue as ProcessQueue, Event
@@ -71,11 +71,9 @@ class SinkType(Enum):
 
 
 # Modify the process_frames function to use one of these methods
-
-
-
 def process_frames(
         process_queue: ProcessQueue, stop_event: Event, display: bool,
+        training_crops_save_dir: str,
         sink_type: SinkType = SinkType.REDIS,
         sink: Optional[redis.Redis | pika.channel.Channel | KafkaProducer] = None,
 ) -> None:
@@ -107,6 +105,11 @@ def process_frames(
                 case _:
                     logging.info("state_message: %s", state_message.to_json())
             print(f"Processed and published frame {frame_count} from device {device_id}")
+            if training_crops_save_dir:
+                generateCrops(device_id=device_id, frame_count=frame_count, frame=frame, training_crops_save_dir=training_crops_save_dir)
+
+
+            print(f"Processed frame {frame_count} from device {device_id}")
 
             if display:
                 cv2.imshow(f"Device {device_id}", frame)
@@ -115,6 +118,26 @@ def process_frames(
 
         except Empty:
             continue
+
+def generateCrops(device_id: int, frame_count: int, frame: cv2.typing.MatLike, training_crops_save_dir: str) -> None:
+    # formatted as "crop_nome" : (x, y, width, height)
+    crops = {
+        "p1_first_item" : (52, 30, 50, 50),
+        "p2_first_item" : (536, 30, 50, 50),
+        "p1_second_item" : (26, 20, 25, 25),
+        "p2_second_item" : (586, 20, 25, 25),
+        "p1_place" : (240, 300, 50, 50),
+        "p2_place" : (560, 300, 50, 50),
+        "p1_coins" : (34, 330, 24, 20),
+        "p2_coins" : (353, 330, 24, 20),
+        "p1_lap" : (72, 330, 32, 20),
+        "p2_lap" : (391, 330, 32, 20),
+    }
+    for name, coords in crops.items():
+        crop = frame[coords[1]:coords[1]+coords[3], coords[0]:coords[0]+coords[2]]
+        out_path = os.path.join(training_crops_save_dir, name, str(device_id))
+        os.makedirs(out_path, exist_ok=True)
+        cv2.imwrite(os.path.join(out_path, f'{frame_count:06}.png'), crop)
 
 
 def main(args: argparse.Namespace) -> None:
@@ -149,9 +172,13 @@ def main(args: argparse.Namespace) -> None:
     # Create and start frame processing processes
     processing_processes = []
     for _ in range(args.threads):
-        process = Process(target=process_frames, args=(process_queue, stop_event, args.display, args.sink, sink))
+        process = Process(target=process_frames, args=(process_queue, stop_event, args.display, args.training_crops_save_dir, args.sink, sink))
         process.start()
         processing_processes.append(process)
+
+    # Create directory to save training crops if specified by user
+    if args.training_crops_save_dir:
+        os.makedirs(args.training_crops_save_dir, exist_ok=True)
 
     # Main loop
     try:
@@ -189,6 +216,8 @@ if __name__ == "__main__":
                         help="Display processed frames (for debugging)")
     parser.add_argument('--sink', type=SinkType, default=SinkType.REDIS, choices=SinkType,
                         help="Choose the message broker to use for publishing the processed frames")
+    parser.add_argument("--training-crops-save-dir", type=str,
+                        help="Directory to save training crops (optional)")
 
     args = parser.parse_args()
 
@@ -202,5 +231,6 @@ if __name__ == "__main__":
     print(f"FPS (for video file): {args.fps}")
     print(f"Display frames: {args.display}")
     print(f"Sink: {args.sink}")
+    print(f"Save training crops to directory: {args.training_crops_save_dir if args.training_crops_save_dir else 'Not provided (not saving training crops)'}")
 
     main(args)
