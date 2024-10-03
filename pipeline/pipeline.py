@@ -88,7 +88,8 @@ def process_frames(
             if frame_count % 1000 == 0:
                 race_id += 1
             if frame_count % 600 == 0:
-                player1_state = state.generate_random_state()
+                player1_state = StateMessage.generate_random_state()
+                player2_state = StateMessage.generate_random_state()
 
             state_message = StateMessage(device_id, frame_count, race_id, player1_state, player2_state)
 

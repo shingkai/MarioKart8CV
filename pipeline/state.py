@@ -68,7 +68,8 @@ class StateMessage:
             "player2_state": self.player2_state
         })
 
-    def generate_random_state(self):
+    @staticmethod
+    def generate_random_state():
         return {
             "position": random.randint(1, 12),
             "items": (random.choice(list(Item)), random.choice(list(Item))),
