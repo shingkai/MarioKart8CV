@@ -1,5 +1,4 @@
 import cv2
-import numpy as np
 import argparse
 from multiprocessing import Process, Queue as ProcessQueue, Event
 from queue import Full, Empty
@@ -19,6 +18,8 @@ def capture_and_process(
     if not cap.isOpened():
         print(f"Error opening video source: {source}")
         return
+
+    frame_time = None
 
     if isinstance(source, int):  # Real device
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
