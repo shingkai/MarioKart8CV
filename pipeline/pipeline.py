@@ -66,7 +66,6 @@ def capture_and_process(
 class SinkType(Enum):
     REDIS = 1
     RABBITMQ = 2
-    KAFKA = 3
 
 
 # Modify the process_frames function to use one of these methods
@@ -74,7 +73,7 @@ def process_frames(
         process_queue: ProcessQueue, stop_event: Event, display: bool,
         training_crops_save_dir: str,
         sink_type: SinkType = SinkType.REDIS,
-        sink: Optional[redis.Redis | pika.channel.Channel | KafkaProducer] = None,
+        sink: Optional[redis.Redis | pika.channel.Channel] = None,
 ) -> None:
     while not stop_event.is_set():
         try:
@@ -99,8 +98,6 @@ def process_frames(
                     publish_to_redis(sink, "mario_kart_states", state_message)
                 case SinkType.RABBITMQ:
                     publish_to_rabbitmq(sink, "mario_kart_states", state_message)
-                case SinkType.KAFKA:
-                    publish_to_kafka(sink, "mario_kart_states", state_message)
                 case _:
                     logging.info("state_message: %s", state_message.to_json())
             print(f"Processed and published frame {frame_count} from device {device_id}")
