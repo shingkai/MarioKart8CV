@@ -1,9 +1,18 @@
+import logging
+from enum import Enum
+
 import cv2
 import argparse
 from multiprocessing import Process, Queue as ProcessQueue, Event
 from queue import Full, Empty
 import time
 from typing import Optional, Tuple, Union
+
+from state import StateMessage, publish_to_redis, publish_to_rabbitmq, publish_to_kafka
+
+import redis
+import pika
+from kafka import KafkaProducer
 
 
 def capture_and_process(
@@ -54,21 +63,47 @@ def capture_and_process(
             time.sleep(frame_time)  # Simulate real-time capture
 
 
-def process_frames(process_queue: ProcessQueue, stop_event: Event, display: bool) -> None:
+class SinkType(Enum):
+    REDIS = 1
+    RABBITMQ = 2
+    KAFKA = 3
+
+
+# Modify the process_frames function to use one of these methods
+def process_frames(
+        process_queue: ProcessQueue, stop_event: Event, display: bool,
+        sink_type: SinkType = SinkType.REDIS,
+        sink: Optional[redis.Redis | pika.channel.Channel | KafkaProducer] = None,
+) -> None:
     while not stop_event.is_set():
         try:
-            device_id, frame_count, frame = process_queue.get(timeout=1)
-            # Stub for CV processing
-            # Implement your CV logic here
-            # time.sleep(0.01)  # Simulate processing time
+            device_id, frame = process_queue.get(timeout=1)
 
-            print(f"Processed frame {frame_count} from device {device_id}")
+            # Your friend's CV logic goes here
+            # For now, we'll use dummy data
+            frame_number = 0  # This should be extracted from the frame or tracked
+            player1_state = {"position": 1, "item": "mushroom"}
+            player2_state = {"position": 2, "item": "banana"}
+
+            state_message = StateMessage(device_id, frame_number, player1_state, player2_state)
+
+            # Choose one of the following based on your chosen method:
+            match sink_type:
+                case SinkType.REDIS:
+                    publish_to_redis(sink, "mario_kart_states", state_message)
+                case SinkType.RABBITMQ:
+                    publish_to_rabbitmq(sink, "mario_kart_states", state_message)
+                case SinkType.KAFKA:
+                    publish_to_kafka(sink, "mario_kart_states", state_message)
+                case _:
+                    logging.info("state_message: %s", state_message.to_json())
+            print(f"Processed and published frame {frame_number} from device {device_id}")
 
             if display:
-                # Display the frame
                 cv2.imshow(f"Device {device_id}", frame)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
-                    stop_event.set()  # Set the stop event if 'q' is pressed
+                    stop_event.set()
+
         except Empty:
             continue
 
@@ -89,10 +124,23 @@ def main(args: argparse.Namespace) -> None:
         process.start()
         capture_processes.append(process)
 
+    match args.sink:
+        case SinkType.REDIS:
+            sink = redis.Redis()
+        case SinkType.RABBITMQ:
+            connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+            channel = connection.channel()
+            channel.queue_declare(queue='mario_kart_states')
+            sink = connection.channel()
+        case SinkType.KAFKA:
+            sink = KafkaProducer(bootstrap_servers=['localhost:9092'])
+        case _:
+            sink = None
+
     # Create and start frame processing processes
     processing_processes = []
     for _ in range(args.threads):
-        process = Process(target=process_frames, args=(process_queue, stop_event, args.display))
+        process = Process(target=process_frames, args=(process_queue, stop_event, args.display, args.sink, sink))
         process.start()
         processing_processes.append(process)
 
@@ -130,6 +178,8 @@ if __name__ == "__main__":
                         help="Frames per second for video emulation (only used with --video-file)")
     parser.add_argument("--display", action="store_true",
                         help="Display processed frames (for debugging)")
+    parser.add_argument('--sink', type=SinkType, default=SinkType.REDIS, choices=SinkType,
+                        help="Choose the message broker to use for publishing the processed frames")
 
     args = parser.parse_args()
 
@@ -142,5 +192,6 @@ if __name__ == "__main__":
     print(f"Number of devices/streams: {args.num_devices}")
     print(f"FPS (for video file): {args.fps}")
     print(f"Display frames: {args.display}")
+    print(f"Sink: {args.sink}")
 
     main(args)
