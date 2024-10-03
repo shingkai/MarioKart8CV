@@ -34,3 +34,8 @@ Run redis-server.exe from the installation directory
  ```
  pip install redis
 ```
+
+# 4. Test Redis connection
+```
+redis-cli ping
+```
