@@ -45,8 +45,10 @@ class StateAggregator:
             stats = self.player_stats[player_id]
             stats['total_frames'] += 1
             stats['positions'].append(player_state['position'])
-            item = player_state['item']
-            stats['items'][item] = stats['items'].get(item, 0) + 1
+            if 'items' in player_state:
+                items = player_state['items']
+                for item in items:
+                    stats['items'][item] = stats['items'].get(item, 0) + 1
 
         self._print_current_stats(frame_number)
 
@@ -56,6 +58,8 @@ class StateAggregator:
             print(f"Player {player_id}:")
             print(f"  Total Frames: {stats['total_frames']}")
             print(f"  Average Position: {sum(stats['positions']) / len(stats['positions']):.2f}")
+            print(f"  Position Distribution: {stats['positions']}")
+            print(f"  Average Coins: {stats['coins']}")
             print(f"  Item Distribution: {stats['items']}")
         print("\n" + "=" * 40 + "\n")
 

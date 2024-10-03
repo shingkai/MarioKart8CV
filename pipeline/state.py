@@ -7,7 +7,7 @@ import redis
 import pika
 
 
-class Item(Enum):
+class Item(int, Enum):
     BANANA = 1
     TRIPLE_BANANA = 2
     GREEN_SHELL = 3
