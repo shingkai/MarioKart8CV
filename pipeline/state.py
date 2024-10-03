@@ -1,4 +1,5 @@
 import json
+import random
 from collections import Counter
 from enum import Enum
 
@@ -53,7 +54,8 @@ class PlayerState:
 
 
 class StateMessage:
-    def __init__(self, device_id: int, frame_number: int, player1_state: dict[str, any], player2_state: dict[str, any]):
+    def __init__(self, device_id: int, frame_number: int, race_id: int, player1_state: dict[str, any], player2_state: dict[str, any]):
+        self.race_id = race_id
         self.device_id = device_id
         self.frame_number = frame_number
         self.player1_state = player1_state
@@ -61,12 +63,20 @@ class StateMessage:
 
     def to_json(self) -> str:
         return json.dumps({
+            "race_id": self.race_id,
             "device_id": self.device_id,
             "frame_number": self.frame_number,
             "player1_state": self.player1_state,
             "player2_state": self.player2_state
         })
 
+    def generate_random_state(self):
+        return {
+            "position": random.randint(1, 12),
+            "items": (random.choice(list(Item)), random.choice(list(Item))),
+            "coins": random.randint(0, 10),
+            "lap": random.randint(1, 3)
+        }
 
 # Option 1: Redis Pub/Sub
 def publish_to_redis(redis_client: redis.Redis, channel: str, message: StateMessage):

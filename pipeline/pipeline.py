@@ -8,6 +8,7 @@ from queue import Full, Empty
 import time
 from typing import Optional, Tuple, Union
 
+import state
 from state import StateMessage, publish_to_redis, publish_to_rabbitmq, publish_to_kafka
 
 import redis
@@ -70,6 +71,9 @@ class SinkType(Enum):
 
 
 # Modify the process_frames function to use one of these methods
+
+
+
 def process_frames(
         process_queue: ProcessQueue, stop_event: Event, display: bool,
         sink_type: SinkType = SinkType.REDIS,
@@ -77,15 +81,20 @@ def process_frames(
 ) -> None:
     while not stop_event.is_set():
         try:
-            device_id, frame = process_queue.get(timeout=1)
+            device_id, frame_count, frame = process_queue.get(timeout=1)
 
             # Your friend's CV logic goes here
             # For now, we'll use dummy data
-            frame_number = 0  # This should be extracted from the frame or tracked
             player1_state = {"position": 1, "item": "mushroom"}
             player2_state = {"position": 2, "item": "banana"}
+            race_id = 0  # This will need to be extracted from our CV thingy
 
-            state_message = StateMessage(device_id, frame_number, player1_state, player2_state)
+            if frame_count % 1000 == 0:
+                race_id += 1
+            if frame_count % 600 == 0:
+                player1_state = state.generate_random_state()
+
+            state_message = StateMessage(device_id, frame_count, race_id, player1_state, player2_state)
 
             # Choose one of the following based on your chosen method:
             match sink_type:
@@ -97,7 +106,7 @@ def process_frames(
                     publish_to_kafka(sink, "mario_kart_states", state_message)
                 case _:
                     logging.info("state_message: %s", state_message.to_json())
-            print(f"Processed and published frame {frame_number} from device {device_id}")
+            print(f"Processed and published frame {frame_count} from device {device_id}")
 
             if display:
                 cv2.imshow(f"Device {device_id}", frame)
