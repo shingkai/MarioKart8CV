@@ -6,6 +6,7 @@ from enum import Enum
 import redis
 import pika
 
+
 class Item(Enum):
     BANANA = 1
     TRIPLE_BANANA = 2
@@ -52,7 +53,8 @@ class PlayerState:
 
 
 class StateMessage:
-    def __init__(self, device_id: int, frame_number: int, race_id: int, player1_state: dict[str, any], player2_state: dict[str, any]):
+    def __init__(self, device_id: int, frame_number: int, race_id: int, player1_state: dict[str, any],
+                 player2_state: dict[str, any]):
         self.race_id = race_id
         self.device_id = device_id
         self.frame_number = frame_number
@@ -76,6 +78,7 @@ class StateMessage:
             "coins": random.randint(0, 10),
             "lap": random.randint(1, 3)
         }
+
 
 # Option 1: Redis Pub/Sub
 def publish_to_redis(redis_client: redis.Redis, channel: str, message: StateMessage):
