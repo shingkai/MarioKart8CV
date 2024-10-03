@@ -161,8 +161,6 @@ def main(args: argparse.Namespace) -> None:
             channel = connection.channel()
             channel.queue_declare(queue='mario_kart_states')
             sink = connection.channel()
-        case SinkType.KAFKA:
-            sink = KafkaProducer(bootstrap_servers=['localhost:9092'])
         case _:
             sink = None
 
