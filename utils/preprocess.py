@@ -2,6 +2,7 @@ import os
 import sys
 import ffmpeg
 
+
 def process_video(input_file, output_dir):
     # Ensure output directory exists
     os.makedirs(output_dir, exist_ok=True)
@@ -9,7 +10,7 @@ def process_video(input_file, output_dir):
     # Get video information
     probe = ffmpeg.probe(input_file)
     video_info = next(s for s in probe['streams'] if s['codec_type'] == 'video')
-    
+
     # Calculate the output framerate (assuming input is 30 fps)
     input_fps = float(video_info['r_frame_rate'].split('/')[0]) / float(video_info['r_frame_rate'].split('/')[1])
     output_fps = min(input_fps, 30)
@@ -31,13 +32,14 @@ def process_video(input_file, output_dir):
         print(f"An error occurred: {e.stderr.decode()}", file=sys.stderr)
         sys.exit(1)
 
+
 if __name__ == "__main__":
     if len(sys.argv) != 3:
         print("Usage: python script.py <input_video_file> <output_directory>")
         sys.exit(1)
-    
+
     input_file = sys.argv[1]
     output_dir = sys.argv[2]
-    
+
     process_video(input_file, output_dir)
 
