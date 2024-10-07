@@ -8,7 +8,7 @@ from queue import Full, Empty
 import time
 from typing import Optional, Tuple, Union
 
-from state import Player, StateMessage, publish_to_redis, publish_to_rabbitmq
+from state import Player, StateMessage, publish_to_redis
 from ocr import extract_player_state
 
 import redis
