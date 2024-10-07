@@ -11,7 +11,6 @@ from typing import Optional, Tuple, Union
 from state import StateMessage, publish_to_redis
 
 import redis
-import pika
 
 
 def capture_and_process(
@@ -135,23 +134,23 @@ def generateCrops(device_id: int, frame_count: int, frame: cv2.typing.MatLike, t
         cv2.imwrite(os.path.join(out_path, f'{frame_count:06}.png'), crop)
 
 
-def main(args: argparse.Namespace) -> None:
+def main(_args: argparse.Namespace) -> None:
     # Create a process queue for frame processing
-    process_queue = ProcessQueue(maxsize=args.queue_size)
+    process_queue = ProcessQueue(maxsize=_args.queue_size)
 
     # Create an event to signal process termination
     stop_event = Event()
 
     # Create and start capture processes
     capture_processes = []
-    for i in range(args.num_devices):
-        source = args.video_file if args.video_file else i
+    for i in range(_args.num_devices):
+        source = _args.video_file if _args.video_file else i
         process = Process(target=capture_and_process,
-                          args=(source, i, args.resolution, args.frame_skip, process_queue, args.fps))
+                          args=(source, i, _args.resolution, _args.frame_skip, process_queue, _args.fps))
         process.start()
         capture_processes.append(process)
 
-    match args.sink:
+    match _args.sink:
         case SinkType.REDIS:
             sink = redis.Redis()
         case _:
@@ -159,15 +158,15 @@ def main(args: argparse.Namespace) -> None:
 
     # Create and start frame processing processes
     processing_processes = []
-    for _ in range(args.threads):
+    for _ in range(_args.threads):
         process = Process(target=process_frames,
-                          args=(process_queue, stop_event, args.display, args.training_crops_save_dir, args.sink, sink))
+                          args=(process_queue, stop_event, _args.display, _args.training_crops_save_dir, _args.sink, sink))
         process.start()
         processing_processes.append(process)
 
     # Create directory to save training crops if specified by user
-    if args.training_crops_save_dir:
-        os.makedirs(args.training_crops_save_dir, exist_ok=True)
+    if _args.training_crops_save_dir:
+        os.makedirs(_args.training_crops_save_dir, exist_ok=True)
 
     # Main loop
     try:
@@ -181,7 +180,7 @@ def main(args: argparse.Namespace) -> None:
     for process in capture_processes + processing_processes:
         process.join()
 
-    if args.display:
+    if _args.display:
         cv2.destroyAllWindows()
 
 
