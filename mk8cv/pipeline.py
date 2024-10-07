@@ -127,6 +127,18 @@ def generateCrops(device_id: int, frame_count: int, frame: cv2.typing.MatLike, t
         # "p1_lap": (72, 330, 32, 20),
         # "p2_lap": (391, 330, 32, 20),
     }
+    crops = {
+        'p1_first_item': (0.08125, 0.084, 0.078125, 0.139),
+        'p2_first_item': (0.8375, 0.084, 0.078125, 0.139),
+        'p1_second_item': (0.040625, 0.056, 0.0390625, 0.0694),
+        'p2_second_item': (0.915625, 0.056, 0.0390625, 0.0694),
+        'p1_place': (0.375, 0.834, 0.078125, 0.139),
+        'p2_place': (0.875, 0.834, 0.078125, 0.139),
+        'p1_coins': (0.053125, 0.916, 0.0375, 0.0556),
+        'p2_coins': (0.5515625, 0.916, 0.0375, 0.0556),
+        'p1_lap': (0.1125, 0.916, 0.05, 0.0556),
+        'p2_lap': (0.6109375, 0.916, 0.05, 0.0556)
+    }
     for name, coords in crops.items():
         crop = frame[coords[1]:coords[1] + coords[3], coords[0]:coords[0] + coords[2]]
         out_path = os.path.join(training_crops_save_dir, name, str(device_id))
