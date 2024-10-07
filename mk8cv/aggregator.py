@@ -96,9 +96,9 @@ class StateAggregator:
             if 'coins' in player_state:
                 stats.coins.distribution[player_state['coins']] += 1
                 if stats.coins.frames[-1][1] != player_state['coins']:
-                    stats.coins.frames[-1] = (stats.coins.frames[-1][0] + 1, stats.coins.frames[-1][1]))
+                    stats.coins.frames.append((1, player_state['coins']))
                 else:
-                    stats.coins.frames[-1][0] += 1
+                    stats.coins.frames[-1] = (stats.coins.frames[-1][0] + 1, stats.coins.frames[-1][1])
                 stats.coins.distribution[player_state['coins']] += 1
             else:
                 # if we didn't receive coins, we'll just assume they didn't change
