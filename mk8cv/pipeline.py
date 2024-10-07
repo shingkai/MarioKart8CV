@@ -120,18 +120,22 @@ def generateCrops(device_id: int, frame_count: int, frame: cv2.typing.MatLike, t
         "p2_first_item": (536, 30, 50, 50),
         "p1_second_item": (26, 20, 25, 25),
         "p2_second_item": (586, 20, 25, 25),
-        "p1_place": (240, 300, 50, 50),
-        "p2_place": (560, 300, 50, 50),
-        "p1_coins": (34, 330, 24, 20),
-        "p2_coins": (353, 330, 24, 20),
-        "p1_lap": (72, 330, 32, 20),
-        "p2_lap": (391, 330, 32, 20),
+        # "p1_place": (240, 300, 50, 50),
+        # "p2_place": (560, 300, 50, 50),
+        # "p1_coins": (34, 330, 24, 20),
+        # "p2_coins": (353, 330, 24, 20),
+        # "p1_lap": (72, 330, 32, 20),
+        # "p2_lap": (391, 330, 32, 20),
     }
     for name, coords in crops.items():
         crop = frame[coords[1]:coords[1] + coords[3], coords[0]:coords[0] + coords[2]]
         out_path = os.path.join(training_crops_save_dir, name, str(device_id))
         os.makedirs(out_path, exist_ok=True)
         cv2.imwrite(os.path.join(out_path, f'{frame_count:06}.png'), crop)
+
+    out_path = os.path.join(training_crops_save_dir, "frames", str(device_id))
+    os.makedirs(out_path, exist_ok=True)
+    cv2.imwrite(os.path.join(out_path, f'{frame_count:06}.png'), frame) 
 
 
 def main(_args: argparse.Namespace) -> None:

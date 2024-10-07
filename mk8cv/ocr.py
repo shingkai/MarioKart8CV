@@ -23,8 +23,8 @@ TESSERACT_STATS = [Stat.POSITION, Stat.COINS, Stat.LAP]
 def extract_text(frame: MatLike, ) -> str:
     # Convert the image to grayscale
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    cv2.imshow('frame', gray)
-    cv2.waitKey(0)
+    # cv2.imshow('frame', gray)
+    # cv2.waitKey(0)
     
     # Run Tesseract OCR on the image
     text = pytesseract.image_to_string(gray, config='--oem 3 --psm 8 -c tessedit_char_whitelist=0123456789/')
