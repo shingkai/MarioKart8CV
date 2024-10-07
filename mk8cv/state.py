@@ -66,12 +66,11 @@ class PlayerState:
     @classmethod
     def from_dict(self, data: dict[Stat, any]):
         return PlayerState(
-            data[Stat.POSITION],
-            data[Stat.ITEM1],
-            data[Stat.ITEM2],
-            data[Stat.COINS],
-            data[Stat.LAP])
-
+            position=data[Stat.POSITION],
+            item1=Item.NONE,
+            item2=Item.NONE,
+            coins=data[Stat.COINS],
+            lap=data[Stat.LAP])
 
 class StateMessage:
     def __init__(self, device_id: int, frame_number: int, race_id: int, player1_state: dict[str, any],
@@ -87,8 +86,8 @@ class StateMessage:
             "race_id": self.race_id,
             "device_id": self.device_id,
             "frame_number": self.frame_number,
-            Player.P1: self.player1_state,
-            Player.P2: self.player2_state
+            Player.P1: self.player1_state.to_dict(),
+            Player.P2: self.player2_state.to_dict()
         })
 
     @staticmethod
