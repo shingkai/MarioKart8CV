@@ -15,24 +15,24 @@ class PlayerPositions:
 
 class PlayerItems:
     def __init__(self):
-        self.first_slot_distribution = Counter()
-        self.second_slot_distribution = Counter()
+        self.first_slot_distribution: Counter[Item] = Counter()
+        self.second_slot_distribution: Counter[Item] = Counter()
         self.frames: list[(int, Item, Item)] = [(-1, Item.NONE, Item.NONE)] # number of frames, item1, item2
 
 
 class PlayerCoins:
     def __init__(self):
-        self.distribution = Counter()
+        self.distribution: Counter[int] = Counter()
         self.frames: list[tuple[int, int]] = [(-1, -1)] # number of frames, coins
 
 
 class PlayerStats:
     def __init__(self, _id: str):
-        self.id = _id
-        self.total_frames = 0
+        self.id: str = _id
+        self.total_frames: int = 0
         self.positions = PlayerPositions()
-        self.items = PlayerItems()
-        self.coins = PlayerCoins()
+        self.items: PlayerItems = PlayerItems()
+        self.coins: PlayerCoins = PlayerCoins()
 
 
     def get_frames_in_position(self, position: int) -> int:
@@ -85,12 +85,12 @@ class StateAggregator:
                 if stats.positions.frames[-1][1] != player_state['position']:
                     stats.positions.frames.append((1, player_state['position']))
                 else:
-                    stats.positions.frames[-1][0] += 1
+                    stats.positions.frames[-1] = (stats.positions.frames[-1][0] + 1, stats.positions.frames[-1][1])
                 stats.positions.distribution[player_state['position']] += 1
             else:
                 # if we didn't receive position, we'll just assume it didn't change
                 stats.positions.distribution[stats.positions.frames[-1][1]] += 1
-                stats.positions.frames[-1][0] += 1
+                stats.positions.frames[-1] = (stats.positions.frames[-1][0] + 1, stats.positions.frames[-1][1])
 
             # handle coins
             if 'coins' in player_state:
@@ -103,22 +103,22 @@ class StateAggregator:
             else:
                 # if we didn't receive coins, we'll just assume they didn't change
                 stats.coins.distribution[stats.coins.frames[-1][1]] += 1
-                stats.coins.frames[-1][0] += 1
+                stats.coins.frames[-1] = (stats.coins.frames[-1][0] + 1, stats.coins.frames[-1][1])
 
             # handle items
             if 'items' in player_state:
-                items = player_state['items']
+                items = (Item(player_state['items'][0], Item(player_state['items'][1])))
                 stats.items.first_slot_distribution[items[0]] += 1
                 stats.items.second_slot_distribution[items[1]] += 1
                 if stats.items.frames[-1][1] != items[0] or stats.items.frames[-1][2] != items[1]:
                     stats.items.frames.append((1, items[0], items[1]))
                 else:
-                    stats.items.frames[-1][0] += 1
+                    stats.items.frames[-1] = (stats.items.frames[-1][0] + 1, stats.items.frames[-1][1], stats.items.frames[-1][2])
             else:
                 # if we didn't receive items, we'll just assume they didn't change
                 stats.items.first_slot_distribution[stats.items.frames[-1][1]] += 1
                 stats.items.second_slot_distribution[stats.items.frames[-1][2]] += 1
-                stats.items.frames[-1][0] += 1
+                stats.items.frames[-1] = (stats.items.frames[-1][0] + 1, stats.items.frames[-1][1], stats.items.frames[-1][2])
 
             stats.total_frames += 1
 

@@ -8,7 +8,7 @@ from queue import Full, Empty
 import time
 from typing import Optional, Tuple, Union
 
-from state import StateMessage, publish_to_redis, publish_to_rabbitmq
+from state import StateMessage, publish_to_redis
 
 import redis
 import pika
@@ -64,7 +64,6 @@ def capture_and_process(
 
 class SinkType(Enum):
     REDIS = 1
-    RABBITMQ = 2
 
 
 # Modify the process_frames function to use one of these methods
@@ -97,8 +96,6 @@ def process_frames(
             match sink_type:
                 case SinkType.REDIS:
                     publish_to_redis(sink, "mario_kart_states", state_message)
-                case SinkType.RABBITMQ:
-                    publish_to_rabbitmq(sink, "mario_kart_states", state_message)
                 case _:
                     logging.info("state_message: %s", state_message.to_json())
             print(f"Processed and published frame {frame_count} from device {device_id}")
@@ -157,11 +154,6 @@ def main(args: argparse.Namespace) -> None:
     match args.sink:
         case SinkType.REDIS:
             sink = redis.Redis()
-        case SinkType.RABBITMQ:
-            connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
-            channel = connection.channel()
-            channel.queue_declare(queue='mario_kart_states')
-            sink = connection.channel()
         case _:
             sink = None
 

@@ -4,7 +4,6 @@ from collections import Counter
 from enum import Enum
 
 import redis
-import pika
 
 
 class Player(str, Enum):
@@ -99,8 +98,3 @@ class StateMessage:
 # Option 1: Redis Pub/Sub
 def publish_to_redis(redis_client: redis.Redis, channel: str, message: StateMessage):
     redis_client.publish(channel, message.to_json())
-
-
-# Option 2: RabbitMQ
-def publish_to_rabbitmq(channel: pika.channel.Channel, routing_key: str, message: StateMessage):
-    channel.basic_publish(exchange='', routing_key=routing_key, body=message.to_json())
