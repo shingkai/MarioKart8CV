@@ -66,8 +66,8 @@ class StateMessage:
             "race_id": self.race_id,
             "device_id": self.device_id,
             "frame_number": self.frame_number,
-            "player1_state": self.player1_state,
-            "player2_state": self.player2_state
+            "player1": self.player1_state,
+            "player2": self.player2_state
         })
 
     @staticmethod

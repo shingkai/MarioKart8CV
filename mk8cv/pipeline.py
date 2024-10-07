@@ -8,7 +8,6 @@ from queue import Full, Empty
 import time
 from typing import Optional, Tuple, Union
 
-import state
 from state import StateMessage, publish_to_redis, publish_to_rabbitmq
 
 import redis
@@ -73,19 +72,20 @@ def process_frames(
         process_queue: ProcessQueue, stop_event: Event, display: bool,
         training_crops_save_dir: str,
         sink_type: SinkType = SinkType.REDIS,
-        sink: Optional[redis.Redis | pika.channel.Channel] = None,
+        sink: Optional[redis.Redis] = None,
 ) -> None:
+    player1_state = {}
+    player2_state = {}
     while not stop_event.is_set():
         try:
             device_id, frame_count, frame = process_queue.get(timeout=1)
 
             # Your friend's CV logic goes here
             # For now, we'll use dummy data
-            player1_state = {"position": 1, "item": "mushroom"}
-            player2_state = {"position": 2, "item": "banana"}
+
             race_id = 0  # This will need to be extracted from our CV thingy
 
-            if frame_count % 1000 == 0:
+            if frame_count % 6000 == 0:
                 race_id += 1
             if frame_count % 600 == 0:
                 player1_state = StateMessage.generate_random_state()
