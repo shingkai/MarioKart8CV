@@ -1,29 +1,62 @@
 import argparse
 import json
 import redis
-from typing import Dict, Any
+from typing import Dict, Any, Optional, TypeVar, Generic
 from collections import Counter
 
-from state import Item
+from state import Item, Stat, Player
+
+T = TypeVar('T')
+
+class RunLengthEncodedStat(Generic[T]):
+    def __init__(self, initial_value: T):
+        self.distribution: Counter[T] = Counter()
+        self.frames: list[tuple[int, T]] = [(-1, initial_value)]  # number of frames, stat
+        self.total_frames: int = 0
+
+    def update(self, stat: Optional[T] = None):
+        self.total_frames += 1
+        if stat is not None:
+            if self.frames[-1][1] != stat:
+                self.frames.append((self.total_frames, stat))
+            self.distribution[stat] += 1
+        else:
+            # if we didn't receive update, we'll just assume it didn't change
+            self.distribution[self.frames[-1][1]] += 1
+
+    def get_stat_at_frame(self, frame: int) -> T:
+        for i, (start_frame, stat) in enumerate(self.frames):
+            if i == len(self.frames) - 1 or self.frames[i+1][0] > frame:
+                return stat
+        raise ValueError(f"No stat data for frame {frame}")
+
+    def get_frames_with_stat(self, stat: T) -> int:
+        return self.distribution[stat]
+
+    def __str__(self):
+        return "\n".join([f"frames {start}-{self.frames[i+1][0] if i+1 < len(self.frames) else self.total_frames}: {stat}"
+                          for i, (start, stat) in enumerate(self.frames)])
 
 
-class PlayerPositions:
+class PlayerItems(RunLengthEncodedStat[tuple[Item, Item]]):
     def __init__(self):
-        self.distribution = Counter()
-        self.frames: list[(int, int)] = [(-1, -1)] # number of frames, position
-
-
-class PlayerItems:
-    def __init__(self):
+        super().__init__((Item.NONE, Item.NONE))
         self.first_slot_distribution: Counter[Item] = Counter()
         self.second_slot_distribution: Counter[Item] = Counter()
-        self.frames: list[(int, Item, Item)] = [(-1, Item.NONE, Item.NONE)] # number of frames, item1, item2
 
+    def update(self, stat: Optional[tuple[Item, Item]] = None):
+        super().update(stat)
+        if stat is not None:
+            self.first_slot_distribution[stat[0]] += 1
+            self.second_slot_distribution[stat[1]] += 1
 
-class PlayerCoins:
+class PlayerCoins(RunLengthEncodedStat[int]):
     def __init__(self):
-        self.distribution: Counter[int] = Counter()
-        self.frames: list[tuple[int, int]] = [(-1, -1)] # number of frames, coins
+        super().__init__(-1)
+
+class PlayerPositions(RunLengthEncodedStat[int]):
+    def __init__(self):
+        super().__init__(-1)
 
 
 class PlayerStats:
@@ -34,15 +67,6 @@ class PlayerStats:
         self.items: PlayerItems = PlayerItems()
         self.coins: PlayerCoins = PlayerCoins()
 
-
-    def get_frames_in_position(self, position: int) -> int:
-        pass
-
-    def get_frames_with_items(self, item1: Item, item2: Item) -> int:
-        pass
-
-    def get_frames_with_coins(self, coins: int) -> int:
-        pass
 
 class StateAggregator:
     def __init__(self, event_source: str, host: str = 'localhost', port: int = 6379):
@@ -67,58 +91,22 @@ class StateAggregator:
             if message['type'] == 'message':
                 self._process_message(json.loads(message['data']))
 
-    def _process_message(self, state_data: Dict[str, Any]):
+    def _process_message(self, state_data: dict[str, Any]):
         device_id = state_data['device_id']
         frame_number = state_data['frame_number']
 
-        for player_num in [1, 2]:
-            player_state = state_data[f'player{player_num}']
-            player_id = f"{device_id}_{player_num}"
+        for key in Player:
+            player_state = state_data[key]
+            player_id = f"{device_id}_{key}"
 
             if player_id not in self.player_stats:
                 self.player_stats[player_id] = PlayerStats(player_id)
 
             stats: PlayerStats = self.player_stats[player_id]
 
-            # handle race position
-            if 'position' in player_state:
-                if stats.positions.frames[-1][1] != player_state['position']:
-                    stats.positions.frames.append((1, player_state['position']))
-                else:
-                    stats.positions.frames[-1] = (stats.positions.frames[-1][0] + 1, stats.positions.frames[-1][1])
-                stats.positions.distribution[player_state['position']] += 1
-            else:
-                # if we didn't receive position, we'll just assume it didn't change
-                stats.positions.distribution[stats.positions.frames[-1][1]] += 1
-                stats.positions.frames[-1] = (stats.positions.frames[-1][0] + 1, stats.positions.frames[-1][1])
-
-            # handle coins
-            if 'coins' in player_state:
-                stats.coins.distribution[player_state['coins']] += 1
-                if stats.coins.frames[-1][1] != player_state['coins']:
-                    stats.coins.frames.append((1, player_state['coins']))
-                else:
-                    stats.coins.frames[-1] = (stats.coins.frames[-1][0] + 1, stats.coins.frames[-1][1])
-                stats.coins.distribution[player_state['coins']] += 1
-            else:
-                # if we didn't receive coins, we'll just assume they didn't change
-                stats.coins.distribution[stats.coins.frames[-1][1]] += 1
-                stats.coins.frames[-1] = (stats.coins.frames[-1][0] + 1, stats.coins.frames[-1][1])
-
-            # handle items
-            if 'items' in player_state:
-                items = (Item(player_state['items'][0], Item(player_state['items'][1])))
-                stats.items.first_slot_distribution[items[0]] += 1
-                stats.items.second_slot_distribution[items[1]] += 1
-                if stats.items.frames[-1][1] != items[0] or stats.items.frames[-1][2] != items[1]:
-                    stats.items.frames.append((1, items[0], items[1]))
-                else:
-                    stats.items.frames[-1] = (stats.items.frames[-1][0] + 1, stats.items.frames[-1][1], stats.items.frames[-1][2])
-            else:
-                # if we didn't receive items, we'll just assume they didn't change
-                stats.items.first_slot_distribution[stats.items.frames[-1][1]] += 1
-                stats.items.second_slot_distribution[stats.items.frames[-1][2]] += 1
-                stats.items.frames[-1] = (stats.items.frames[-1][0] + 1, stats.items.frames[-1][1], stats.items.frames[-1][2])
+            stats.positions.update(player_state[Stat.POSITION])
+            stats.items.update((Item(player_state[Stat.ITEM1]), Item(player_state[Stat.ITEM2])))
+            stats.coins.update(player_state[Stat.COINS])
 
             stats.total_frames += 1
 
