@@ -72,6 +72,7 @@ class PlayerState:
             coins=data[Stat.COINS],
             lap=data[Stat.LAP])
 
+
 class StateMessage:
     def __init__(self, device_id: int, frame_number: int, race_id: int, player1_state: dict[str, any],
                  player2_state: dict[str, any]):

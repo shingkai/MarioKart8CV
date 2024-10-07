@@ -160,7 +160,7 @@ def main(_args: argparse.Namespace) -> None:
     processing_processes = []
     for _ in range(_args.threads):
         process = Process(target=process_frames,
-                          args=(process_queue, stop_event, _args.display, _args.training_crops_save_dir, _args.sink, sink))
+                          args=(process_queue, stop_event, _args.display, _args.training_crops_save_dir, None, None))
         process.start()
         processing_processes.append(process)
 
