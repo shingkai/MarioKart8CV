@@ -8,7 +8,8 @@ from queue import Full, Empty
 import time
 from typing import Optional, Tuple, Union
 
-from state import StateMessage, publish_to_redis
+from state import Player, StateMessage, publish_to_redis, publish_to_rabbitmq
+from ocr import extract_player_state
 
 import redis
 
@@ -85,9 +86,9 @@ def process_frames(
 
             if frame_count % 6000 == 0:
                 race_id += 1
-            if frame_count % 600 == 0:
-                player1_state = StateMessage.generate_random_state()
-                player2_state = StateMessage.generate_random_state()
+
+            player1_state = extract_player_state(frame, Player.P1)
+            player2_state = extract_player_state(frame, Player.P2)
 
             state_message = StateMessage(device_id, frame_count, race_id, player1_state, player2_state)
 
@@ -111,7 +112,6 @@ def process_frames(
 
         except Empty:
             continue
-
 
 def generateCrops(device_id: int, frame_count: int, frame: cv2.typing.MatLike, training_crops_save_dir: str) -> None:
     # formatted as "crop_nome" : (x, y, width, height)

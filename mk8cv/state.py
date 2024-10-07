@@ -52,7 +52,6 @@ class PlayerState:
         self.position = position
         self.item1 = item1
         self.item2 = item2
-        self.item_distribution = Counter()
         self.coins = coins
 
     def to_dict(self) -> dict[str, any]:
@@ -62,8 +61,16 @@ class PlayerState:
             Stat.POSITION: self.position,
             Stat.ITEM1: self.item1,
             Stat.ITEM2: self.item2,
-            "item_distribution": self.item_distribution
         }
+    
+    @classmethod
+    def from_dict(self, data: dict[Stat, any]):
+        return PlayerState(
+            data[Stat.POSITION],
+            data[Stat.ITEM1],
+            data[Stat.ITEM2],
+            data[Stat.COINS],
+            data[Stat.LAP])
 
 
 class StateMessage:
