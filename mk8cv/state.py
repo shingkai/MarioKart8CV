@@ -7,6 +7,19 @@ import redis
 import pika
 
 
+class Player(str, Enum):
+    P1 = 'p1'
+    P2 = 'p2'
+
+
+class Stat(str, Enum):
+    POSITION = 'position'
+    LAP = 'lap'
+    COINS = 'coins'
+    ITEM1 = 'item1'
+    ITEM2 = 'item2'
+
+
 class Item(int, Enum):
     BANANA = 1
     TRIPLE_BANANA = 2
@@ -35,19 +48,21 @@ class Item(int, Enum):
 
 
 class PlayerState:
-    def __init__(self, position: int, items: tuple[Item, Item], coins: int = 0, lap: int = 1):
+    def __init__(self, position: int, item1: Item, item2: Item, coins: int = 0, lap: int = 1):
         self.lap = lap
         self.position = position
-        self.items = items
+        self.item1 = item1
+        self.item2 = item2
         self.item_distribution = Counter()
         self.coins = coins
 
     def to_dict(self) -> dict[str, any]:
         return {
-            "coins": self.coins,
-            "lap": self.lap,
-            "position": self.position,
-            "items": self.items,
+            Stat.COINS: self.coins,
+            Stat.LAP: self.lap,
+            Stat.POSITION: self.position,
+            Stat.ITEM1: self.item1,
+            Stat.ITEM2: self.item2,
             "item_distribution": self.item_distribution
         }
 
@@ -66,17 +81,18 @@ class StateMessage:
             "race_id": self.race_id,
             "device_id": self.device_id,
             "frame_number": self.frame_number,
-            "player1": self.player1_state,
-            "player2": self.player2_state
+            Player.P1: self.player1_state,
+            Player.P2: self.player2_state
         })
 
     @staticmethod
     def generate_random_state():
         return {
-            "position": random.randint(1, 12),
-            "items": (random.choice(list(Item)), random.choice(list(Item))),
-            "coins": random.randint(0, 10),
-            "lap": random.randint(1, 3)
+            Stat.POSITION: random.randint(1, 12),
+            Stat.ITEM1: random.choice(list(Item)),
+            Stat.ITEM2: random.choice(list(Item)),
+            Stat.COINS: random.randint(0, 10),
+            Stat.LAP: random.randint(1, 3)
         }
 
 
