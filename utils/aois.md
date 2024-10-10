@@ -20,8 +20,8 @@ Coordinates are based as a percentage of the total image. Values will need to be
 |-----|----|----|----|----|
 | P1 1st Item | 0.08 | 0.164 | 0.08 | 0.23 |
 | P2 1st Item | 0.834 | 0.918 | 0.08 | 0.23 |
-| P1 2nd Item | 0.038 | 0.08 | 0.047 | 0.13 |
-| P2 2nd Item | 0.918 | 0.96 | 0.047 | 0.13 |
+| P1 2nd Item | 0.039 | 0.082 | 0.047 | 0.13 |
+| P2 2nd Item | 0.915 | 0.958 | 0.047 | 0.13 |
 | P1 Position | 0.38 | 0.47 | 0.84 | 0.97 |
 | P2 Position | 0.88 | 0.97 | 0.84 | 0.97 |
 | P1 Coins | 0.03 | 0.09 | 0.91 | 0.97 |
