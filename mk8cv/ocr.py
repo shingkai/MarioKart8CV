@@ -1,4 +1,8 @@
+import os
+from collections import Counter
+
 import cv2
+import numpy as np
 from cv2.typing import MatLike
 import pytesseract
 
@@ -7,47 +11,105 @@ from state import Player, Stat, PlayerState, Item
 # formatted as (x, y, width, height)
 text_aois = {
     Player.P1 : {
-        Stat.POSITION: (240, 300, 50, 50),
-        Stat.COINS: (34, 330, 24, 20),
-        Stat.LAP: (72, 330, 32, 20),
+        Stat.POSITION: (0.38, 0.47, 0.84, 0.97),
+        # Stat.COINS: (0.03, 0.09, 0.91, 0.97),
+        Stat.COINS: (0.056, 0.09, 0.92, 0.965),
+        Stat.LAP: (0.09, 0.17, 0.91, 0.97),
     },
     Player.P2 : {
-        Stat.POSITION: (560, 300, 50, 50),
-        Stat.COINS: (34, 330, 24, 20),
-        Stat.LAP: (391, 330, 32, 20),
+        Stat.POSITION: (0.88, 0.97, 0.84, 0.97),
+        # Stat.COINS: (0.53, 0.59, 0.91, 0.97),
+        Stat.COINS: (0.556, 0.59, 0.92, 0.965),
+        Stat.LAP: (0.59, 0.67, 0.91, 0.97),
     },
 }
 
 TESSERACT_STATS = [Stat.POSITION, Stat.COINS, Stat.LAP]
 
-def extract_text(frame: MatLike, config) -> str:
-    # Convert the image to grayscale
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    gray = cv2.resize(gray, (0, 0), None, 4.0, 4.0)
-    cv2.imshow('frame', gray)
-    cv2.waitKey(0)
+def load_templates(template_dir):
+    templates = {}
+    for filename in os.listdir(template_dir):
+        if filename.endswith('.png'):
+            number = filename.split('.')[0]
+            template = cv2.imread(os.path.join(template_dir, filename), 0)
+            templates[number] = template
+    return templates
 
-    # Run Tesseract OCR on the image
-    text = pytesseract.image_to_string(gray, config=config)
-    
-    return text
+coin_templates = load_templates("templates")
 
-def extract_text_lap_counter(frame: MatLike) -> str:
-    return extract_text(frame, config='--oem 3 --psm 8 -c tessedit_char_whitelist=0123/')
+def match_template(image, template, threshold=0.90):
+    result = cv2.matchTemplate(image, template, cv2.TM_CCOEFF_NORMED)
+    locations = np.where(result >= threshold)
+    return list(zip(*locations[::-1]))
+
+
+def recognize_coins(image, templates):
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    cv2.imshow('gray', gray)
+
+    recognized = Counter()
+    for number, template in templates.items():
+        locations = match_template(gray, template)
+        recognized[number] += len(locations)
+
+    best = max(recognized, key=recognized.get)
+    if best != 0:
+        return best
+    return None
+
+
+# def extract_text(frame: MatLike, config) -> str:
+#     # Convert the image to grayscale
+#     # gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+#     # gray = cv2.resize(gray, (0, 0), None, 4.0, 4.0)
+#     # cv2.imshow('frame', gray)
+#     # cv2.waitKey(0)
+#
+#     # Run Tesseract OCR on the image
+#     # text = pytesseract.image_to_string(gray, config=config)
+#     coins = recognize_coins(frame, templates)
+#
+#
+#     return text
+#
+# def extract_text_lap_counter(frame: MatLike) -> str:
+#     return extract_text(frame, config='--oem 3 --psm 8 -c tessedit_char_whitelist=0123/')
+
+def preprocess_image(image_path):
+    # Read the image
+    img = cv2.imread(image_path)
+
+    # Convert to grayscale
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    # Apply threshold to get white regions
+    _, thresh = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY)
+
+    # Perform morphological operations to clean up the image
+    kernel = np.ones((3, 3), np.uint8)
+    thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+
+    return thresh
 
 def extract_text_coins(frame: MatLike) -> str:
-    return extract_text(frame, config='--oem 3 --psm 8 -c tessedit_char_whitelist=0123456789')
+    # return extract_text(frame, config='--oem 3 --psm 8 -c tessedit_char_whitelist=0123456789')
+    return recognize_coins(frame, coin_templates)
 
 def extract_player_state(frame: MatLike, player: Player) -> PlayerState:
 
     coins_coords = text_aois[player][Stat.COINS]
     lap_coords = text_aois[player][Stat.LAP]
-    coins = extract_text_coins(frame[coins_coords[1]:coins_coords[1] + coins_coords[3], coins_coords[0]:coins_coords[0] + coins_coords[2]])
-    lap = extract_text_lap_counter(frame[lap_coords[1]:lap_coords[1] + lap_coords[3], lap_coords[0]:lap_coords[0] + lap_coords[2]])
+    height, width, channels = frame.shape
+    coins = extract_text_coins(
+        frame[round(height * coins_coords[2]): round(height * coins_coords[3]), round(width * coins_coords[0]): round(width * coins_coords[1])]
+    )
+    # lap = extract_text_lap_counter(frame[lap_coords[1]:lap_coords[1] + lap_coords[3], lap_coords[0]:lap_coords[0] + lap_coords[2]])
 
     player_state = {
         Stat.COINS: coins,
-        Stat.LAP: lap,
+        # Stat.LAP: lap,
+        Stat.LAP: 1,
+        Stat.POSITION: 1,
     }
 
     print(player_state)

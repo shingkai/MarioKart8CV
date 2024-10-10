@@ -132,9 +132,9 @@ def generateCrops(device_id: int, frame_count: int, frame: cv2.typing.MatLike, t
         os.makedirs(out_path, exist_ok=True)
         cv2.imwrite(os.path.join(out_path, f'{frame_count:06}.png'), crop)
 
-    out_path = os.path.join(training_save_dir, "frames", str(device_id))
-    os.makedirs(out_path, exist_ok=True)
-    cv2.imwrite(os.path.join(out_path, f'{frame_count:06}.png'), frame) 
+    # out_path = os.path.join(training_save_dir, "frames", str(device_id))
+    # os.makedirs(out_path, exist_ok=True)
+    # cv2.imwrite(os.path.join(out_path, f'{frame_count:06}.png'), frame)
 
 
 def main(_args: argparse.Namespace) -> None:
