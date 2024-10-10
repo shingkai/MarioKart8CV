@@ -69,7 +69,7 @@ class SinkType(Enum):
 # Modify the process_frames function to use one of these methods
 def process_frames(
         process_queue: ProcessQueue, stop_event: Event, display: bool,
-        training_crops_save_dir: str,
+        training_save_dir: str,
         sink_type: SinkType = SinkType.REDIS,
         sink: Optional[redis.Redis] = None,
 ) -> None:
@@ -99,9 +99,9 @@ def process_frames(
                 case _:
                     logging.info("state_message: %s", state_message.to_json())
             print(f"Processed and published frame {frame_count} from device {device_id}")
-            if training_crops_save_dir:
+            if training_save_dir:
                 generateCrops(device_id=device_id, frame_count=frame_count, frame=frame,
-                              training_crops_save_dir=training_crops_save_dir)
+                              training_save_dir=training_save_dir)
 
             print(f"Processed frame {frame_count} from device {device_id}")
 
@@ -113,7 +113,7 @@ def process_frames(
         except Empty:
             continue
 
-def generateCrops(device_id: int, frame_count: int, frame: cv2.typing.MatLike, training_crops_save_dir: str) -> None:
+def generateCrops(device_id: int, frame_count: int, frame: cv2.typing.MatLike, training_save_dir: str) -> None:
     # formatted as "crop_nome" : (x, y, width, height)
     crops = {
         "p1_first_item": (52, 30, 50, 50),
@@ -141,11 +141,11 @@ def generateCrops(device_id: int, frame_count: int, frame: cv2.typing.MatLike, t
     }
     for name, coords in crops.items():
         crop = frame[coords[1]:coords[1] + coords[3], coords[0]:coords[0] + coords[2]]
-        out_path = os.path.join(training_crops_save_dir, name, str(device_id))
+        out_path = os.path.join(training_save_dir, name, str(device_id))
         os.makedirs(out_path, exist_ok=True)
         cv2.imwrite(os.path.join(out_path, f'{frame_count:06}.png'), crop)
 
-    out_path = os.path.join(training_crops_save_dir, "frames", str(device_id))
+    out_path = os.path.join(training_save_dir, "frames", str(device_id))
     os.makedirs(out_path, exist_ok=True)
     cv2.imwrite(os.path.join(out_path, f'{frame_count:06}.png'), frame) 
 
@@ -176,13 +176,13 @@ def main(_args: argparse.Namespace) -> None:
     processing_processes = []
     for _ in range(_args.threads):
         process = Process(target=process_frames,
-                          args=(process_queue, stop_event, _args.display, _args.training_crops_save_dir, None, None))
+                          args=(process_queue, stop_event, _args.display, _args.training_save_dir, None, None))
         process.start()
         processing_processes.append(process)
 
     # Create directory to save training crops if specified by user
-    if _args.training_crops_save_dir:
-        os.makedirs(_args.training_crops_save_dir, exist_ok=True)
+    if _args.training_save_dir:
+        os.makedirs(_args.training_save_dir, exist_ok=True)
 
     # Main loop
     try:
@@ -220,8 +220,8 @@ if __name__ == "__main__":
                         help="Display processed frames (for debugging)")
     parser.add_argument('--sink', type=SinkType, default=SinkType.REDIS, choices=SinkType,
                         help="Choose the message broker to use for publishing the processed frames")
-    parser.add_argument("--training-crops-save-dir", type=str,
-                        help="Directory to save training crops (optional)")
+    parser.add_argument("--training-save-dir", type=str,
+                        help="Directory to save training images (optional)")
 
     args = parser.parse_args()
 
@@ -236,6 +236,6 @@ if __name__ == "__main__":
     print(f"Display frames: {args.display}")
     print(f"Sink: {args.sink}")
     print(
-        f"Save training crops to directory: {args.training_crops_save_dir if args.training_crops_save_dir else 'Not provided (not saving training crops)'}")
+        f"Save training images to directory: {args.training_save_dir if args.training_save_dir else 'Not provided (not saving training images)'}")
 
     main(args)
