@@ -79,9 +79,6 @@ def process_frames(
         try:
             device_id, frame_count, frame = process_queue.get(timeout=1)
 
-            # Your friend's CV logic goes here
-            # For now, we'll use dummy data
-
             race_id = 0  # This will need to be extracted from our CV thingy
 
             if frame_count % 6000 == 0:
@@ -114,33 +111,23 @@ def process_frames(
             continue
 
 def generateCrops(device_id: int, frame_count: int, frame: cv2.typing.MatLike, training_save_dir: str) -> None:
-    # formatted as "crop_nome" : (x, y, width, height)
+    # formatted as "crop_nome" : (x1, x2, y1, y2)
+    height, width, channels = frame.shape
+
     crops = {
-        "p1_first_item": (52, 30, 50, 50),
-        "p2_first_item": (536, 30, 50, 50),
-        "p1_second_item": (26, 20, 25, 25),
-        "p2_second_item": (586, 20, 25, 25),
-        # "p1_place": (240, 300, 50, 50),
-        # "p2_place": (560, 300, 50, 50),
-        # "p1_coins": (34, 330, 24, 20),
-        # "p2_coins": (353, 330, 24, 20),
-        # "p1_lap": (72, 330, 32, 20),
-        # "p2_lap": (391, 330, 32, 20),
-    }
-    crops = {
-        'p1_first_item': (0.08125, 0.084, 0.078125, 0.139),
-        'p2_first_item': (0.8375, 0.084, 0.078125, 0.139),
-        'p1_second_item': (0.040625, 0.056, 0.0390625, 0.0694),
-        'p2_second_item': (0.915625, 0.056, 0.0390625, 0.0694),
-        'p1_place': (0.375, 0.834, 0.078125, 0.139),
-        'p2_place': (0.875, 0.834, 0.078125, 0.139),
-        'p1_coins': (0.053125, 0.916, 0.0375, 0.0556),
-        'p2_coins': (0.5515625, 0.916, 0.0375, 0.0556),
-        'p1_lap': (0.1125, 0.916, 0.05, 0.0556),
-        'p2_lap': (0.6109375, 0.916, 0.05, 0.0556)
+        'p1_first_item': (0.08, 0.164, 0.08, 0.23),
+        'p2_first_item': (0.834, 0.918, 0.08, 0.23),
+        'p1_second_item': (0.039, 0.082, 0.047, 0.13),
+        'p2_second_item': (0.915, 0.958, 0.047, 0.13),
+        'p1_position': (0.38, 0.47, 0.84, 0.97),
+        'p2_position': (0.88, 0.97, 0.84, 0.97),
+        'p1_coins': (0.03, 0.09, 0.91, 0.97),
+        'p2_coins': (0.53, 0.59, 0.91, 0.97),
+        'p1_lap': (0.09, 0.17, 0.91, 0.97),
+        'p2_lap': (0.59, 0.67, 0.91, 0.97),
     }
     for name, coords in crops.items():
-        crop = frame[coords[1]:coords[1] + coords[3], coords[0]:coords[0] + coords[2]]
+        crop = frame[round(height * coords[2]) : round(height * coords[3]), round(width * coords[0]) : round(width * coords[1])]
         out_path = os.path.join(training_save_dir, name, str(device_id))
         os.makedirs(out_path, exist_ok=True)
         cv2.imwrite(os.path.join(out_path, f'{frame_count:06}.png'), crop)
