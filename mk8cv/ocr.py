@@ -30,29 +30,34 @@ def load_templates(template_dir):
     templates = {}
     for filename in os.listdir(template_dir):
         if filename.endswith('.png'):
+            if 'mask' in filename:
+                continue
             number = filename.split('.')[0]
             template = cv2.imread(os.path.join(template_dir, filename), 0)
             templates[number] = template
     return templates
 
-coin_templates = load_templates("templates")
+coin_templates = load_templates("templates/coins")
+coin_mask = cv2.imread("templates/coins/mask_full.png", 0)
 
-def match_template(image, template, threshold=0.90):
-    result = cv2.matchTemplate(image, template, cv2.TM_CCOEFF_NORMED)
-    locations = np.where(result >= threshold)
-    return list(zip(*locations[::-1]))
-
+def match_template(image, template, mask, threshold=0.95):
+    result = cv2.matchTemplate(image, template, cv2.TM_SQDIFF, mask=mask)
+    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
+    # locations = np.where(result >= threshold)
+    # return list(zip(*locations[::-1]))
+    return min_val
 
 def recognize_coins(image, templates):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    cv2.imshow('gray', gray)
+    # cv2.imshow('gray', gray)
 
-    recognized = Counter()
+    scores = {}
     for number, template in templates.items():
-        locations = match_template(gray, template)
-        recognized[number] += len(locations)
+        score = match_template(gray, template, coin_mask)
+        scores[number] = score
 
-    best = max(recognized, key=recognized.get)
+    print(scores)
+    best = min(scores, key=scores.get)
     if best != 0:
         return best
     return None

@@ -8,7 +8,8 @@ from queue import Full, Empty
 import time
 from typing import Optional, Tuple, Union
 
-from state import Player, StateMessage, publish_to_redis
+
+from state import Player, StateMessage, publish_to_redis, Stat
 from ocr import extract_player_state
 
 import redis
@@ -103,6 +104,8 @@ def process_frames(
             print(f"Processed frame {frame_count} from device {device_id}")
 
             if display:
+                cv2.putText(frame, f'{state_message.player1_state.coins}', (150, 950), cv2.FONT_HERSHEY_SIMPLEX, 2, 255, thickness=5)
+                cv2.putText(frame, f'{state_message.player2_state.coins}', (1200, 950), cv2.FONT_HERSHEY_SIMPLEX, 2, 255, thickness=5)
                 cv2.imshow(f"Device {device_id}", frame)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     stop_event.set()
