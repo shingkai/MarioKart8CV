@@ -39,10 +39,16 @@ def extract_text_coins(frame: MatLike) -> str:
     return extract_text(frame, config='--oem 3 --psm 8 -c tessedit_char_whitelist=0123456789')
 
 def extract_player_state(frame: MatLike, player: Player) -> PlayerState:
+
+    coins_coords = text_aois[player][Stat.COINS]
+    lap_coords = text_aois[player][Stat.LAP]
+    coins = extract_text_coins(frame[coins_coords[1]:coins_coords[1] + coins_coords[3], coins_coords[0]:coins_coords[0] + coins_coords[2]])
+    lap = extract_text_lap_counter(frame[lap_coords[1]:lap_coords[1] + lap_coords[3], lap_coords[0]:lap_coords[0] + lap_coords[2]])
+
     player_state = {
-        stat: extract_text(frame[coords[1]:coords[1] + coords[3], coords[0]:coords[0] + coords[2]]) for stat, coords in text_aois[player].items() if stat in TESSERACT_STATS
+        Stat.COINS: coins,
+        Stat.LAP: lap,
     }
-    # player_state[Player.P1].update({Stat.ITEM1: Item.NONE, Stat.ITEM2: Item.NONE})
-    # player_state[Player.P2].update({Stat.ITEM1: Item.NONE, Stat.ITEM2: Item.NONE})
+
     print(player_state)
     return PlayerState.from_dict(player_state)
