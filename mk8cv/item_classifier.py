@@ -7,8 +7,23 @@ from state import Player, Stat, PlayerState, Item
 from aois import CROP_COORDS
 
 # ordered list of item classes that the model was trained on
-# TODO: can we extract this from the model.load_state_dict() call?
-class_names = ['1', '16', '21', '3', '5', '9', '24']
+class_names = [
+    Item.BANANA,
+    Item.TRIPLE_MUSHROOM,
+    Item.GOLDEN_MUSHROOM,
+    Item.BLOOPER,
+    Item.FIRE_FLOWER,
+    Item.PIRANHA_PLANT,
+    Item.TRIPLE_BANANA,
+    Item.COIN,
+    Item.BOO,
+    Item.NONE,
+    Item.GREEN_SHELL,
+    Item.TRIPLE_GREEN_SHELL,
+    Item.RED_SHELL,
+    Item.BLUE_SHELL,
+    Item.MUSHROOM
+]
 
 # # Check if GPU is available (either cuda for nvidia or mps for apple silicon)
 device = torch.device("cuda:0" if torch.cuda.is_available() else torch.device("mps") if torch.backends.mps.is_available() else  torch.device("cpu"))

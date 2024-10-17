@@ -10,7 +10,7 @@ from typing import Optional, Tuple, Union
 
 import torch
 
-from state import Player, StateMessage, publish_to_redis, Stat
+from state import Player, StateMessage, publish_to_redis, Stat, PlayerState
 from ocr import extract_player_state, CROP_COORDS
 from item_classifier import extract_player_items
 
@@ -25,6 +25,8 @@ def capture_and_process(
         process_queue: ProcessQueue,
         fps: Optional[float] = None
 ) -> None:
+    logging.getLogger().setLevel(logging.INFO)
+
     cap = cv2.VideoCapture(source)
     if not cap.isOpened():
         logging.error(f"Error opening video source: {source}")
@@ -43,6 +45,8 @@ def capture_and_process(
     frames_processed = 0
 
     while True:
+        # if frame_count > 1000:
+        #     break
         ret, frame = cap.read()
         if not ret:
             if isinstance(source, str):  # Video file
@@ -77,8 +81,8 @@ def capture_and_process(
             while process_queue.full():
                 time.sleep(1)
                 sleep *= 2
-        # if isinstance(source, str) and frame_time:  # Video file
-        #     time.sleep(frame_time)  # Simulate real-time capture
+        if isinstance(source, str) and frame_time:  # Video file
+            time.sleep(frame_time)  # Simulate real-time capture
 
 
 class SinkType(Enum):
@@ -101,7 +105,12 @@ def process_frames(
         training_save_dir: str,
         sink_type: SinkType = SinkType.REDIS,
         sink: Optional[redis.Redis] = None,
+        no_extract: bool = False
 ) -> None:
+    logging.getLogger().setLevel(logging.INFO)
+    start_time = time.time()
+    frames_processed = 0
+
     while not stop_event.is_set():
         try:
             device_id, frame_count, frame = process_queue.get(timeout=1)
@@ -111,11 +120,14 @@ def process_frames(
             if frame_count % 6000 == 0:
                 race_id += 1
 
-            player1_state = extract_player_state(frame, Player.P1)
-            player2_state = extract_player_state(frame, Player.P2)
-
-            player1_state = extract_player_items(frame, Player.P1, player1_state)
-            player2_state = extract_player_items(frame, Player.P2, player2_state)
+            if no_extract:
+                player1_state = PlayerState.generate_random_state()
+                player2_state = PlayerState.generate_random_state()
+            else:
+                player1_state = extract_player_state(frame, Player.P1)
+                player2_state = extract_player_state(frame, Player.P2)
+                player1_state = extract_player_items(frame, Player.P1, player1_state)
+                player2_state = extract_player_items(frame, Player.P2, player2_state)
 
             state_message = StateMessage(device_id, frame_count, race_id, player1_state, player2_state)
 
@@ -125,15 +137,26 @@ def process_frames(
                     publish_to_redis(sink, "mario_kart_states", state_message)
                 case _:
                     logging.debug("state_message: %s", state_message.to_json())
+
+            frames_processed += 1
+            elapsed_time = time.time() - start_time
+            if elapsed_time >= 1.0:
+                fps = frames_processed / elapsed_time
+                logging.info(f"Processing FPS: {fps:.2f}")
+                frames_processed = 0
+                start_time = time.time()
+
             logging.debug(f"Processed and published frame {frame_count} from device {device_id}")
             if training_save_dir:
                 generateCrops(device_id=device_id, frame_count=frame_count, frame=frame,
                               training_save_dir=training_save_dir)
 
             if frame_count % 1000 == 0:
-                logging.info(f"Processed frame {frame_count} from device {device_id}, queue size: {process_queue.qsize()}")
+                logging.info(
+                    f"Processed frame {frame_count} from device {device_id}, queue size: {process_queue.qsize()}")
             else:
-                logging.debug(f"Processed frame {frame_count} from device {device_id}, queue size: {process_queue.qsize()}")
+                logging.debug(
+                    f"Processed frame {frame_count} from device {device_id}, queue size: {process_queue.qsize()}")
 
             states = {
                 Player.P1: player1_state,
@@ -153,7 +176,8 @@ def process_frames(
                         round(frame.shape[1] * crop_coords[Stat.LAP_NUM][0]),
                         round(frame.shape[0] * (crop_coords[Stat.LAP_NUM][2] - 0.015))
                     )
-                    add_text(frame, f'{states[player].lap}/{states[player].race_laps}', lap_text_position, scale=1, thickness=3)
+                    add_text(frame, f'{states[player].lap}/{states[player].race_laps}', lap_text_position, scale=1,
+                             thickness=3)
 
                     position_text_position = (
                         round(frame.shape[1] * crop_coords[Stat.POSITION][0]),
@@ -175,14 +199,14 @@ def process_frames(
 
                     for crop, coords in crop_coords.items():
                         cv2.rectangle(frame, (round(frame.shape[1] * coords[0]), round(frame.shape[0] * coords[2])),
-                                      (round(frame.shape[1] * coords[1]), round(frame.shape[0] * coords[3])), (255, 0, 0), 2)
+                                      (round(frame.shape[1] * coords[1]), round(frame.shape[0] * coords[3])),
+                                      (255, 0, 0), 2)
                 cv2.imshow(f"Device {device_id}", frame)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     stop_event.set()
 
         except Empty:
             continue
-
 
 def generateCrops(device_id: int, frame_count: int, frame: cv2.typing.MatLike, training_save_dir: str) -> None:
     # formatted as "crop_nome" : (x1, x2, y1, y2)
@@ -226,7 +250,7 @@ def main(_args: argparse.Namespace) -> None:
     processing_processes = []
     for _ in range(_args.threads):
         process = Process(target=process_frames,
-                          args=(process_queue, stop_event, _args.display, _args.training_save_dir, None, None))
+                          args=(process_queue, stop_event, _args.display, _args.training_save_dir, None, None, _args.no_extract))
         process.start()
         processing_processes.append(process)
 
@@ -272,6 +296,7 @@ if __name__ == "__main__":
                         help="Choose the message broker to use for publishing the processed frames")
     parser.add_argument("--training-save-dir", type=str,
                         help="Directory to save training images (optional)")
+    parser.add_argument("--no-extract", action="store_true", help="Skip extracting player state and items", default=False)
 
     logging.getLogger().setLevel(logging.INFO)
     args = parser.parse_args()
@@ -288,6 +313,7 @@ if __name__ == "__main__":
     logging.info(f"FPS (for video file): {args.fps}")
     logging.info(f"Display frames: {args.display}")
     logging.info(f"Sink: {args.sink}")
+    logging.info(f"Extract player state and items: {not args.no_extract}")
     logging.info(
         f"Save training images to directory: {args.training_save_dir if args.training_save_dir else 'Not provided (not saving training images)'}")
 

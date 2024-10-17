@@ -74,7 +74,18 @@ class PlayerState:
             item2=Item.NONE,
             coins=data[Stat.COINS],
             lap_num=data[Stat.LAP_NUM],
-        race_laps=data[Stat.RACE_LAPS])
+        race_laps=data[Stat.RACE_LAPS])\
+
+    @staticmethod
+    def generate_random_state():
+        return PlayerState(
+            position=random.randint(1, 12),
+            item1=random.choice(list(Item)),
+            item2=random.choice(list(Item)),
+            coins=random.randint(0, 10),
+            lap_num=random.randint(1, 3),
+            race_laps=3
+        )
 
 
 class StateMessage:
@@ -94,17 +105,6 @@ class StateMessage:
             Player.P1: self.player1_state.__dict__ if self.player1_state else {},
             Player.P2: self.player2_state.__dict__ if self.player2_state else {}
         })
-
-    @staticmethod
-    def generate_random_state():
-        return {
-            Stat.POSITION: random.randint(1, 12),
-            Stat.ITEM1: random.choice(list(Item)),
-            Stat.ITEM2: random.choice(list(Item)),
-            Stat.COINS: random.randint(0, 10),
-            Stat.LAP_NUM: random.randint(1, 3),
-            Stat.RACE_LAPS: 3
-        }
 
 
 # Option 1: Redis Pub/Sub
