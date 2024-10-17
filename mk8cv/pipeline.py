@@ -126,10 +126,10 @@ def process_frames(
                     add_text(frame, f'{states[player].coins}', coins_text_position)
 
                     lap_text_position = (
-                        round(frame.shape[1] * crop_coords[Stat.LAP][0]),
-                        round(frame.shape[0] * (crop_coords[Stat.LAP][2] - 0.015))
+                        round(frame.shape[1] * crop_coords[Stat.LAP_NUM][0]),
+                        round(frame.shape[0] * (crop_coords[Stat.LAP_NUM][2] - 0.015))
                     )
-                    add_text(frame, f'{states[player].lap}', lap_text_position)
+                    add_text(frame, f'{states[player].lap}/{states[player].race_laps}', lap_text_position, scale=1, thickness=3)
 
                     position_text_position = (
                         round(frame.shape[1] * crop_coords[Stat.POSITION][0]),

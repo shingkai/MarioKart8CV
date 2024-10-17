@@ -13,7 +13,8 @@ class Player(str, Enum):
 
 class Stat(str, Enum):
     POSITION = 'position'
-    LAP = 'lap'
+    LAP_NUM = 'lap_num'
+    RACE_LAPS = 'race_laps'
     COINS = 'coins'
     ITEM1 = 'item1'
     ITEM2 = 'item2'
@@ -47,8 +48,9 @@ class Item(int, Enum):
 
 
 class PlayerState:
-    def __init__(self, position: int, item1: Item, item2: Item, coins: int = 0, lap: int = 1):
-        self.lap = lap
+    def __init__(self, position: int, item1: Item, item2: Item, coins: int = 0, lap_num: int = 1, race_laps: int = 3):
+        self.lap = lap_num
+        self.race_laps = race_laps
         self.position = position
         self.item1 = item1
         self.item2 = item2
@@ -57,7 +59,8 @@ class PlayerState:
     def to_dict(self) -> dict[str, any]:
         return {
             Stat.COINS: self.coins,
-            Stat.LAP: self.lap,
+            Stat.LAP_NUM: self.lap_num,
+            Stat.RACE_LAPS: self.race_laps,
             Stat.POSITION: self.position,
             Stat.ITEM1: self.item1,
             Stat.ITEM2: self.item2,
@@ -70,7 +73,8 @@ class PlayerState:
             item1=Item.NONE,
             item2=Item.NONE,
             coins=data[Stat.COINS],
-            lap=data[Stat.LAP])
+            lap_num=data[Stat.LAP_NUM],
+        race_laps=data[Stat.RACE_LAPS])
 
 
 class StateMessage:
@@ -87,8 +91,8 @@ class StateMessage:
             "race_id": self.race_id,
             "device_id": self.device_id,
             "frame_number": self.frame_number,
-            Player.P1: self.player1_state.to_dict(),
-            Player.P2: self.player2_state.to_dict()
+            Player.P1: self.player1_state.__dict__,
+            Player.P2: self.player2_state.__dict__
         })
 
     @staticmethod
@@ -98,7 +102,8 @@ class StateMessage:
             Stat.ITEM1: random.choice(list(Item)),
             Stat.ITEM2: random.choice(list(Item)),
             Stat.COINS: random.randint(0, 10),
-            Stat.LAP: random.randint(1, 3)
+            Stat.LAP_NUM: random.randint(1, 3),
+            Stat.RACE_LAPS: 3
         }
 
 
