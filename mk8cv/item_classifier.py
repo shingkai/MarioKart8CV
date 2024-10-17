@@ -33,7 +33,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else torch.device("m
 
 def load_model(model_path: str):
     # Load the model architecture
-    model = models.vgg16(pretrained=False)
+    model = models.resnext50_32x4d(pretrained=False)
      # Adjust final layer to match output classes
     model.fc = torch.nn.Linear(model.fc.in_features, len(class_names)) 
     # Load the saved weights
@@ -45,7 +45,7 @@ def load_model(model_path: str):
 
     return model
 
-model = load_model('models/item_classifier_vgg16.pth')
+model = load_model('models/item_classifier_resnext50.pth')
 # model = load_model('/home/itsgrimetime/code/MarioKart8CV/notebooks/best_model_vgg16.pth')
 
 
