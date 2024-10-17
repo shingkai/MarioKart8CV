@@ -78,8 +78,8 @@ class PlayerState:
 
 
 class StateMessage:
-    def __init__(self, device_id: int, frame_number: int, race_id: int, player1_state: dict[str, any],
-                 player2_state: dict[str, any]):
+    def __init__(self, device_id: int, frame_number: int, race_id: int, player1_state: PlayerState,
+                 player2_state: PlayerState):
         self.race_id = race_id
         self.device_id = device_id
         self.frame_number = frame_number
