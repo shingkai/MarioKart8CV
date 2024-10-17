@@ -25,7 +25,7 @@ def capture_and_process(
 ) -> None:
     cap = cv2.VideoCapture(source)
     if not cap.isOpened():
-        print(f"Error opening video source: {source}")
+        logging.error(f"Error opening video source: {source}")
         return
 
     frame_time = None
@@ -57,7 +57,7 @@ def capture_and_process(
         try:
             process_queue.put((device_id, frame_count, downscaled), block=False)
         except Full:
-            print(f"Queue is full. Skipping frame from device {device_id}")
+            logging.warn(f"Queue is full. Skipping frame from device {device_id}")
 
         if isinstance(source, str) and frame_time:  # Video file
             time.sleep(frame_time)  # Simulate real-time capture
@@ -103,13 +103,16 @@ def process_frames(
                 case SinkType.REDIS:
                     publish_to_redis(sink, "mario_kart_states", state_message)
                 case _:
-                    logging.info("state_message: %s", state_message.to_json())
-            print(f"Processed and published frame {frame_count} from device {device_id}")
+                    logging.debug("state_message: %s", state_message.to_json())
+            logging.debug(f"Processed and published frame {frame_count} from device {device_id}")
             if training_save_dir:
                 generateCrops(device_id=device_id, frame_count=frame_count, frame=frame,
                               training_save_dir=training_save_dir)
 
-            print(f"Processed frame {frame_count} from device {device_id}")
+            if frame_count % 1000 == 0:
+                logging.info(f"Processed frame {frame_count} from device {device_id}, queue size: {process_queue.qsize()}")
+            else:
+                logging.debug(f"Processed frame {frame_count} from device {device_id}, queue size: {process_queue.qsize()}")
 
             states = {
                 Player.P1: player1_state,
@@ -215,7 +218,7 @@ def main(_args: argparse.Namespace) -> None:
         while not stop_event.is_set():
             time.sleep(1)  # Sleep to reduce CPU usage of main thread
     except KeyboardInterrupt:
-        print("Shutting down...")
+        logging.info("Shutting down...")
 
     # Clean up
     stop_event.set()
@@ -248,20 +251,20 @@ if __name__ == "__main__":
                         help="Choose the message broker to use for publishing the processed frames")
     parser.add_argument("--training-save-dir", type=str,
                         help="Directory to save training images (optional)")
-
+    logging.getLogger().setLevel(logging.INFO)
     args = parser.parse_args()
 
-    print(f"Running with settings:")
-    print(f"Video file: {args.video_file if args.video_file else 'Not provided (using real devices)'}")
-    print(f"Resolution: {args.resolution}")
-    print(f"Frame skip: {args.frame_skip}")
-    print(f"Threads: {args.threads}")
-    print(f"Queue size: {args.queue_size}")
-    print(f"Number of devices/streams: {args.num_devices}")
-    print(f"FPS (for video file): {args.fps}")
-    print(f"Display frames: {args.display}")
-    print(f"Sink: {args.sink}")
-    print(
+    logging.info(f"Running with settings:")
+    logging.info(f"Video file: {args.video_file if args.video_file else 'Not provided (using real devices)'}")
+    logging.info(f"Resolution: {args.resolution}")
+    logging.info(f"Frame skip: {args.frame_skip}")
+    logging.info(f"Threads: {args.threads}")
+    logging.info(f"Queue size: {args.queue_size}")
+    logging.info(f"Number of devices/streams: {args.num_devices}")
+    logging.info(f"FPS (for video file): {args.fps}")
+    logging.info(f"Display frames: {args.display}")
+    logging.info(f"Sink: {args.sink}")
+    logging.info(
         f"Save training images to directory: {args.training_save_dir if args.training_save_dir else 'Not provided (not saving training images)'}")
 
     main(args)

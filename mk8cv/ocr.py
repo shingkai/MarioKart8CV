@@ -1,12 +1,11 @@
+import logging
 import os
-from collections import Counter
 
 import cv2
 import numpy as np
 from cv2.typing import MatLike
-import pytesseract
 
-from state import Player, Stat, PlayerState, Item
+from state import Player, Stat, PlayerState
 
 CROP_COORDS = {
     Player.P1 : {
@@ -65,7 +64,7 @@ def recognize_lap_num(image, templates):
         score = match_template(gray, template, coin_mask)
         scores[number] = score
 
-    print(scores)
+    logging.debug(scores)
     best = min(scores, key=scores.get)
     if best != 0:
         return best
@@ -80,7 +79,7 @@ def recognize_race_laps(image, templates):
         score = match_template(gray, template, coin_mask)
         scores[number] = score
 
-    print(scores)
+    logging.debug(scores)
     best = min(scores, key=scores.get)
     if best != 0:
         return best
@@ -95,7 +94,7 @@ def recognize_coins(image, templates):
         score = match_template(gray, template, coin_mask)
         scores[number] = score
 
-    print(scores)
+    logging.debug(scores)
     best = min(scores, key=scores.get)
     if best != 0:
         return best
@@ -171,5 +170,5 @@ def extract_player_state(frame: MatLike, player: Player) -> PlayerState:
         Stat.POSITION: 1,
     }
 
-    print(player_state)
+    logging.debug(player_state)
     return PlayerState.from_dict(player_state)
