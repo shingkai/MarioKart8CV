@@ -8,6 +8,7 @@ from queue import Full, Empty
 import time
 from typing import Optional, Tuple, Union
 
+import torch
 
 from state import Player, StateMessage, publish_to_redis, Stat
 from ocr import extract_player_state, CROP_COORDS
@@ -273,6 +274,8 @@ if __name__ == "__main__":
                         help="Directory to save training images (optional)")
     logging.getLogger().setLevel(logging.INFO)
     args = parser.parse_args()
+
+    torch.multiprocessing.set_start_method('spawn')
 
     logging.info(f"Running with settings:")
     logging.info(f"Video file: {args.video_file if args.video_file else 'Not provided (using real devices)'}")

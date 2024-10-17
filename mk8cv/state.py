@@ -91,8 +91,8 @@ class StateMessage:
             "race_id": self.race_id,
             "device_id": self.device_id,
             "frame_number": self.frame_number,
-            Player.P1: self.player1_state.__dict__,
-            Player.P2: self.player2_state.__dict__
+            Player.P1: self.player1_state.__dict__ if self.player1_state else {},
+            Player.P2: self.player2_state.__dict__ if self.player2_state else {}
         })
 
     @staticmethod

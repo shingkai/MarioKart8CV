@@ -75,4 +75,4 @@ def extract_player_items(frame: MatLike, player: Player, state: PlayerState) -> 
     item1 = predict_image(frame[round(height * item1_coords[2]): round(height * item1_coords[3]), round(width * item1_coords[0]): round(width * item1_coords[1])])
 
     state.item1 = Item(int(item1))
-
+    return state
