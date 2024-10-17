@@ -10,7 +10,7 @@ from typing import Optional, Tuple, Union
 
 
 from state import Player, StateMessage, publish_to_redis, Stat
-from ocr import extract_player_state
+from ocr import extract_player_state, CROP_COORDS
 
 import redis
 
@@ -66,6 +66,16 @@ def capture_and_process(
 class SinkType(Enum):
     REDIS = 1
 
+def add_text(frame: cv2.typing.MatLike, text: str, position: Tuple[int, int], color=(255, 0, 0), scale=2, thickness=5) -> None:
+    cv2.putText(
+        frame,
+        text,
+        position,
+        cv2.FONT_HERSHEY_SIMPLEX,
+        fontScale=scale,
+        color=color,
+        thickness=thickness
+    )
 
 # Modify the process_frames function to use one of these methods
 def process_frames(
@@ -74,8 +84,6 @@ def process_frames(
         sink_type: SinkType = SinkType.REDIS,
         sink: Optional[redis.Redis] = None,
 ) -> None:
-    player1_state = {}
-    player2_state = {}
     while not stop_event.is_set():
         try:
             device_id, frame_count, frame = process_queue.get(timeout=1)
@@ -103,9 +111,47 @@ def process_frames(
 
             print(f"Processed frame {frame_count} from device {device_id}")
 
+            states = {
+                Player.P1: player1_state,
+                Player.P2: player2_state
+            }
+
             if display:
-                cv2.putText(frame, f'{state_message.player1_state.coins}', (150, 950), cv2.FONT_HERSHEY_SIMPLEX, 2, 255, thickness=5)
-                cv2.putText(frame, f'{state_message.player2_state.coins}', (1200, 950), cv2.FONT_HERSHEY_SIMPLEX, 2, 255, thickness=5)
+                for player in [Player.P1, Player.P2]:
+                    crop_coords = CROP_COORDS[player]
+                    coins_text_position = (
+                        round(frame.shape[1] * crop_coords[Stat.COINS][0]),
+                        round(frame.shape[0] * (crop_coords[Stat.COINS][2] - 0.015))
+                    )
+                    add_text(frame, f'{states[player].coins}', coins_text_position)
+
+                    lap_text_position = (
+                        round(frame.shape[1] * crop_coords[Stat.LAP][0]),
+                        round(frame.shape[0] * (crop_coords[Stat.LAP][2] - 0.015))
+                    )
+                    add_text(frame, f'{states[player].lap}', lap_text_position)
+
+                    position_text_position = (
+                        round(frame.shape[1] * crop_coords[Stat.POSITION][0]),
+                        round(frame.shape[0] * (crop_coords[Stat.POSITION][2] - 0.015))
+                    )
+                    add_text(frame, f'{states[player].position}', position_text_position)
+
+                    item1_text_position = (
+                        round(frame.shape[1] * crop_coords[Stat.ITEM1][0]),
+                        round(frame.shape[0] * (crop_coords[Stat.ITEM1][2] - 0.015))
+                    )
+                    add_text(frame, f'{states[player].item1}', item1_text_position, scale=1, thickness=3)
+
+                    item2_text_position = (
+                        round(frame.shape[1] * crop_coords[Stat.ITEM2][0]),
+                        round(frame.shape[0] * (crop_coords[Stat.ITEM2][2] - 0.015))
+                    )
+                    add_text(frame, f'{player1_state.item2}', item2_text_position, scale=1, thickness=3)
+
+                    for crop, coords in crop_coords.items():
+                        cv2.rectangle(frame, (round(frame.shape[1] * coords[0]), round(frame.shape[0] * coords[2])),
+                                      (round(frame.shape[1] * coords[1]), round(frame.shape[0] * coords[3])), (255, 0, 0), 2)
                 cv2.imshow(f"Device {device_id}", frame)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     stop_event.set()
@@ -113,27 +159,17 @@ def process_frames(
         except Empty:
             continue
 
+
 def generateCrops(device_id: int, frame_count: int, frame: cv2.typing.MatLike, training_save_dir: str) -> None:
     # formatted as "crop_nome" : (x1, x2, y1, y2)
     height, width, channels = frame.shape
 
-    crops = {
-        'p1_first_item': (0.08, 0.164, 0.08, 0.23),
-        'p2_first_item': (0.834, 0.918, 0.08, 0.23),
-        'p1_second_item': (0.039, 0.082, 0.047, 0.13),
-        'p2_second_item': (0.915, 0.958, 0.047, 0.13),
-        'p1_position': (0.38, 0.47, 0.84, 0.97),
-        'p2_position': (0.88, 0.97, 0.84, 0.97),
-        'p1_coins': (0.03, 0.09, 0.91, 0.97),
-        'p2_coins': (0.53, 0.59, 0.91, 0.97),
-        'p1_lap': (0.09, 0.17, 0.91, 0.97),
-        'p2_lap': (0.59, 0.67, 0.91, 0.97),
-    }
-    for name, coords in crops.items():
-        crop = frame[round(height * coords[2]) : round(height * coords[3]), round(width * coords[0]) : round(width * coords[1])]
-        out_path = os.path.join(training_save_dir, name, str(device_id))
-        os.makedirs(out_path, exist_ok=True)
-        cv2.imwrite(os.path.join(out_path, f'{frame_count:06}.png'), crop)
+    for player, stat in CROP_COORDS.items():
+        for name, coords in stat.items():
+            crop = frame[round(height * coords[2]) : round(height * coords[3]), round(width * coords[0]) : round(width * coords[1])]
+            out_path = os.path.join(training_save_dir, name, str(device_id))
+            os.makedirs(out_path, exist_ok=True)
+            cv2.imwrite(os.path.join(out_path, f'{frame_count:06}.png'), crop)
 
     # out_path = os.path.join(training_save_dir, "frames", str(device_id))
     # os.makedirs(out_path, exist_ok=True)

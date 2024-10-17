@@ -24,6 +24,24 @@ text_aois = {
     },
 }
 
+CROP_COORDS = {
+    Player.P1 : {
+        Stat.POSITION: (0.38, 0.47, 0.84, 0.97),
+        Stat.COINS: (0.056, 0.09, 0.92, 0.965),
+        Stat.LAP: (0.121, 0.161, 0.92, 0.965),
+        Stat.ITEM1: (0.08, 0.164, 0.08, 0.23),
+        Stat.ITEM2: (0.039, 0.082, 0.047, 0.13),
+    },
+    Player.P2 : {
+        Stat.POSITION: (0.88, 0.97, 0.84, 0.97),
+        Stat.COINS: (0.556, 0.59, 0.92, 0.965),
+        Stat.LAP: (0.621, 0.661, 0.92, 0.965),
+        Stat.ITEM1: (0.834, 0.918, 0.08, 0.23),
+        Stat.ITEM2: (0.915, 0.958, 0.047, 0.13),
+    }
+}
+
+
 TESSERACT_STATS = [Stat.POSITION, Stat.COINS, Stat.LAP]
 
 def load_templates(template_dir):
