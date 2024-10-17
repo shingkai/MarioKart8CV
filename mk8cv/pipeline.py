@@ -66,8 +66,8 @@ def capture_and_process(
             # Calculate and log FPS every second
             elapsed_time = time.time() - start_time
             if elapsed_time >= 1.0:
-                fps = frames_processed / elapsed_time
-                logging.info(f"Device {device_id}: Actual FPS = {fps:.2f}")
+                actual_fps = frames_processed / elapsed_time
+                logging.info(f"Device {device_id}: Actual FPS = {actual_fps:.2f}")
                 frames_processed = 0
                 start_time = time.time()
 
@@ -171,7 +171,7 @@ def process_frames(
                         round(frame.shape[1] * crop_coords[Stat.ITEM2][0]),
                         round(frame.shape[0] * (crop_coords[Stat.ITEM2][2] - 0.015))
                     )
-                    add_text(frame, f'{player1_state.item2}', item2_text_position, scale=1, thickness=3)
+                    add_text(frame, f'{states[player].item2}', item2_text_position, scale=1, thickness=3)
 
                     for crop, coords in crop_coords.items():
                         cv2.rectangle(frame, (round(frame.shape[1] * coords[0]), round(frame.shape[0] * coords[2])),
@@ -272,6 +272,7 @@ if __name__ == "__main__":
                         help="Choose the message broker to use for publishing the processed frames")
     parser.add_argument("--training-save-dir", type=str,
                         help="Directory to save training images (optional)")
+
     logging.getLogger().setLevel(logging.INFO)
     args = parser.parse_args()
 
