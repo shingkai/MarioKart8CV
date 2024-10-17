@@ -5,26 +5,8 @@ import cv2
 import numpy as np
 from cv2.typing import MatLike
 
+from aois import CROP_COORDS
 from state import Player, Stat, PlayerState
-
-CROP_COORDS = {
-    Player.P1 : {
-        Stat.POSITION: (0.38, 0.47, 0.84, 0.97),
-        Stat.COINS: (0.056, 0.09, 0.92, 0.965),
-        Stat.LAP_NUM: (0.121, 0.135, 0.925, 0.9635),
-        Stat.RACE_LAPS: (0.146, 0.161, 0.925, 0.9635),
-        Stat.ITEM1: (0.08, 0.164, 0.08, 0.23),
-        Stat.ITEM2: (0.039, 0.082, 0.047, 0.13),
-    },
-    Player.P2 : {
-        Stat.POSITION: (0.88, 0.97, 0.84, 0.97),
-        Stat.COINS: (0.556, 0.59, 0.92, 0.965),
-        Stat.LAP_NUM: (0.621, 0.635, 0.925, 0.9635),
-        Stat.RACE_LAPS: (0.646, 0.661, 0.925, 0.9635),
-        Stat.ITEM1: (0.834, 0.918, 0.08, 0.23),
-        Stat.ITEM2: (0.915, 0.958, 0.047, 0.13),
-    }
-}
 
 
 TESSERACT_STATS = [Stat.POSITION, Stat.COINS, Stat.RACE_LAPS, Stat.LAP_NUM]
@@ -49,10 +31,7 @@ lap_num_templates = load_templates("templates/lap_num")
 lap_num_masks = load_templates("templates/lap_num", masks=True)
 # race_laps_templates = load_templates("templates/race_laps", mask_suffix='')
 # race_laps_masks = load_templates("templates/race_laps", mask_suffix='_mask.png')
-
 coin_mask = cv2.imread("templates/coins/mask_full.png", 0)
-# lap_num_mask = cv2.imread("templates/lap_num/mask_full.png", 0)
-# race_laps_mask = cv2.imread("templates/race_laps/mask_full.png", 0)
 
 def match_template(image, template, mask, threshold=0.95):
     result = cv2.matchTemplate(image, template, cv2.TM_SQDIFF, mask=mask)
@@ -106,24 +85,6 @@ def recognize_coins(image, templates):
         return best
     return None
 
-
-# def extract_text(frame: MatLike, config) -> str:
-#     # Convert the image to grayscale
-#     # gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-#     # gray = cv2.resize(gray, (0, 0), None, 4.0, 4.0)
-#     # cv2.imshow('frame', gray)
-#     # cv2.waitKey(0)
-#
-#     # Run Tesseract OCR on the image
-#     # text = pytesseract.image_to_string(gray, config=config)
-#     coins = recognize_coins(frame, templates)
-#
-#
-#     return text
-#
-# def extract_text_lap_counter(frame: MatLike) -> str:
-#     return extract_text(frame, config='--oem 3 --psm 8 -c tessedit_char_whitelist=0123/')
-
 def preprocess_image(image_path):
     # Read the image
     img = cv2.imread(image_path)
@@ -159,9 +120,9 @@ def extract_player_state(frame: MatLike, player: Player) -> PlayerState:
         frame[round(height * coins_coords[2]): round(height * coins_coords[3]), round(width * coins_coords[0]): round(width * coins_coords[1])]
     )
 
-    # lap_num = extract_text_lap_num(
-    #     frame[round(height * lap_num_coords[2]): round(height * lap_num_coords[3]), round(width * lap_num_coords[0]): round(width * lap_num_coords[1])]
-    # )
+    lap_num = extract_text_lap_num(
+        frame[round(height * lap_num_coords[2]): round(height * lap_num_coords[3]), round(width * lap_num_coords[0]): round(width * lap_num_coords[1])]
+    )
     #
     # race_laps = extract_text_race_laps(
     #     frame[round(height * race_laps_coords[2]): round(height * race_laps_coords[3]), round(width * race_laps_coords[0]): round(width * race_laps_coords[1])]
@@ -169,8 +130,7 @@ def extract_player_state(frame: MatLike, player: Player) -> PlayerState:
 
     player_state = {
         Stat.COINS: coins,
-        Stat.LAP_NUM: 1,
-        # Stat.LAP_NUM: lap_num,
+        Stat.LAP_NUM: lap_num,
         Stat.RACE_LAPS: 3,
         # Stat.RACE_LAPS: race_laps,
         Stat.POSITION: 1,
