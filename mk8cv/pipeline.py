@@ -11,6 +11,7 @@ from typing import Optional, Tuple, Union
 
 from state import Player, StateMessage, publish_to_redis, Stat
 from ocr import extract_player_state, CROP_COORDS
+from item_classifier import extract_player_items
 
 import redis
 
@@ -95,6 +96,9 @@ def process_frames(
 
             player1_state = extract_player_state(frame, Player.P1)
             player2_state = extract_player_state(frame, Player.P2)
+
+            player1_state = extract_player_items(frame, Player.P1, player1_state)
+            player2_state = extract_player_items(frame, Player.P2, player2_state)
 
             state_message = StateMessage(device_id, frame_count, race_id, player1_state, player2_state)
 

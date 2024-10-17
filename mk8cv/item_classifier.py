@@ -1,11 +1,14 @@
 import torch
 from torchvision import models, transforms
 import cv2
+from cv2.typing import MatLike
 
+from state import Player, Stat, PlayerState, Item
+from aois import CROP_COORDS
 
 # ordered list of item classes that the model was trained on
 # TODO: can we extract this from the model.load_state_dict() call?
-class_names = ['1', '16', '21', '3', '5', '9', 'None']
+class_names = ['1', '16', '21', '3', '5', '9', '24']
 
 # # Check if GPU is available (either cuda for nvidia or mps for apple silicon)
 device = torch.device("cuda:0" if torch.cuda.is_available() else torch.device("mps") if torch.backends.mps.is_available() else  torch.device("cpu"))
@@ -42,7 +45,7 @@ preprocess = transforms.Compose([
     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 ])
 
-def predict_image(frame):
+def predict_image(frame) -> str:
     # Preprocess the image
     img = preprocess(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
     
@@ -63,3 +66,13 @@ def predict_image(frame):
     predicted_class_name = class_names[predicted_class.item()]
     
     return predicted_class_name
+
+def extract_player_items(frame: MatLike, player: Player, state: PlayerState) -> PlayerState:
+    """Extracts the player's items from the frame."""
+    height, width, channels = frame.shape
+
+    item1_coords = CROP_COORDS[player][Stat.ITEM1]
+    item1 = predict_image(frame[round(height * item1_coords[2]): round(height * item1_coords[3]), round(width * item1_coords[0]): round(width * item1_coords[1])])
+
+    state.item1 = Item(int(item1))
+
