@@ -9,20 +9,23 @@ from aois import CROP_COORDS
 # ordered list of item classes that the model was trained on
 class_names = [
     Item.BANANA,
-    Item.TRIPLE_MUSHROOM,
-    Item.GOLDEN_MUSHROOM,
-    Item.BLOOPER,
-    Item.FIRE_FLOWER,
-    Item.PIRANHA_PLANT,
     Item.TRIPLE_BANANA,
-    Item.COIN,
-    Item.BOO,
-    Item.NONE,
     Item.GREEN_SHELL,
     Item.TRIPLE_GREEN_SHELL,
     Item.RED_SHELL,
     Item.BLUE_SHELL,
-    Item.MUSHROOM
+    Item.MUSHROOM,
+    Item.TRIPLE_MUSHROOM,
+    Item.GOLDEN_MUSHROOM,
+    Item.BULLET_BILL,
+    Item.BLOOPER,
+    Item.STAR,
+    Item.FIRE_FLOWER,
+    Item.PIRANHA_PLANT,
+    Item.SUPER_HORN,
+    Item.COIN,
+    Item.BOO,
+    Item.NONE,
 ]
 
 # # Check if GPU is available (either cuda for nvidia or mps for apple silicon)
@@ -31,25 +34,20 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else torch.device("m
 def load_model(model_path: str):
     # Load the model architecture
     model = models.vgg16(pretrained=False)
-    num_features = model.classifier[6].in_features
-
-    # Modify the classifier to fit the number of classes in your model
-    model.classifier[6] = torch.nn.Linear(num_features, len(class_names))  # class_names should have the number of classes in your dataset
-
+     # Adjust final layer to match output classes
+    model.fc = torch.nn.Linear(model.fc.in_features, len(class_names)) 
     # Load the saved weights
-
     model.load_state_dict(torch.load(model_path, map_location=device))
-    # model.load_state_dict(torch.load('/home/itsgrimetime/code/MarioKart8CV/notebooks/best_model_vgg16.pth', map_location=device))
-
     # Set the model to evaluation mode
     model.eval()
-
     # Move the model to the appropriate device (MPS or CPU)
     model = model.to(device)
 
     return model
 
 model = load_model('models/item_classifier_vgg16.pth')
+# model = load_model('/home/itsgrimetime/code/MarioKart8CV/notebooks/best_model_vgg16.pth')
+
 
 # Define the transformation to be applied to the input image (same as used during training)
 preprocess = transforms.Compose([
