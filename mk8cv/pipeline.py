@@ -167,7 +167,7 @@ def generateCrops(device_id: int, frame_count: int, frame: cv2.typing.MatLike, t
     for player, stat in CROP_COORDS.items():
         for name, coords in stat.items():
             crop = frame[round(height * coords[2]) : round(height * coords[3]), round(width * coords[0]) : round(width * coords[1])]
-            out_path = os.path.join(training_save_dir, name, str(device_id))
+            out_path = os.path.join(training_save_dir, name, str(player))
             os.makedirs(out_path, exist_ok=True)
             cv2.imwrite(os.path.join(out_path, f'{frame_count:06}.png'), crop)
 
