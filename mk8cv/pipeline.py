@@ -38,6 +38,9 @@ def capture_and_process(
         frame_time = 1 / fps if fps else 0
 
     frame_count = 0
+    start_time = time.time()
+    frames_processed = 0
+
     while True:
         ret, frame = cap.read()
         if not ret:
@@ -57,11 +60,24 @@ def capture_and_process(
         # Try to put the frame in the queue, if it's full, skip this frame
         try:
             process_queue.put((device_id, frame_count, downscaled), block=False)
-        except Full:
-            logging.warn(f"Queue is full. Skipping frame from device {device_id}")
+            frames_processed += 1
 
-        if isinstance(source, str) and frame_time:  # Video file
-            time.sleep(frame_time)  # Simulate real-time capture
+            # Calculate and log FPS every second
+            elapsed_time = time.time() - start_time
+            if elapsed_time >= 1.0:
+                fps = frames_processed / elapsed_time
+                logging.info(f"Device {device_id}: Actual FPS = {fps:.2f}")
+                frames_processed = 0
+                start_time = time.time()
+
+        except Full:
+            sleep = 1
+            logging.warning(f"Queue is full. Backing off for device {device_id} for {sleep} seconds")
+            while process_queue.full():
+                time.sleep(1)
+                sleep *= 2
+        # if isinstance(source, str) and frame_time:  # Video file
+        #     time.sleep(frame_time)  # Simulate real-time capture
 
 
 class SinkType(Enum):
