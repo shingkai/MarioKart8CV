@@ -8,11 +8,10 @@ from queue import Full, Empty
 import time
 from typing import Optional, Tuple, Union
 
-import torch
+# import torch
 
 from state import Player, StateMessage, publish_to_redis, Stat, PlayerState
 from ocr import extract_player_state, CROP_COORDS
-from item_classifier import extract_player_items
 
 import redis
 
@@ -45,15 +44,15 @@ def capture_and_process(
     frames_processed = 0
 
     while True:
-        # if frame_count > 1000:
-        #     break
+        if frame_count > 1000:
+            return
         ret, frame = cap.read()
         if not ret:
             if isinstance(source, str):  # Video file
                 cap.set(cv2.CAP_PROP_POS_FRAMES, 0)  # Loop the video
                 continue
             else:
-                break
+                return
 
         frame_count += 1
         if frame_count % (frame_skip + 1) != 0:
@@ -82,11 +81,14 @@ def capture_and_process(
                 time.sleep(1)
                 sleep *= 2
         if isinstance(source, str) and frame_time:  # Video file
+            print('sleeping')
             time.sleep(frame_time)  # Simulate real-time capture
 
 
 class SinkType(Enum):
+    NONE = 0
     REDIS = 1
+
 
 def add_text(frame: cv2.typing.MatLike, text: str, position: Tuple[int, int], color=(255, 0, 0), scale=2, thickness=5) -> None:
     cv2.putText(
@@ -104,16 +106,24 @@ def process_frames(
         process_queue: ProcessQueue, stop_event: Event, display: bool,
         training_save_dir: str,
         sink_type: SinkType = SinkType.REDIS,
-        sink: Optional[redis.Redis] = None,
         no_extract: bool = False
 ) -> None:
+    match sink_type:
+        case SinkType.REDIS:
+            sink = redis.Redis()
+        case _:
+            sink = None
     logging.getLogger().setLevel(logging.INFO)
     start_time = time.time()
     frames_processed = 0
+    if not no_extract:
+        from item_classifier import extract_player_items
 
     while not stop_event.is_set():
         try:
             device_id, frame_count, frame = process_queue.get(timeout=1)
+            if frame_count >= 1000:
+                return
 
             race_id = 0  # This will need to be extracted from our CV thingy
 
@@ -206,6 +216,9 @@ def process_frames(
                     stop_event.set()
 
         except Empty:
+            print('empty')
+            logging.info("Queue is empty. Waiting for frames...")
+            stop_event.set()
             continue
 
 def generateCrops(device_id: int, frame_count: int, frame: cv2.typing.MatLike, training_save_dir: str) -> None:
@@ -250,7 +263,7 @@ def main(_args: argparse.Namespace) -> None:
     processing_processes = []
     for _ in range(_args.threads):
         process = Process(target=process_frames,
-                          args=(process_queue, stop_event, _args.display, _args.training_save_dir, None, None, _args.no_extract))
+                          args=(process_queue, stop_event, _args.display, _args.training_save_dir, _args.sink, _args.no_extract))
         process.start()
         processing_processes.append(process)
 
@@ -292,7 +305,7 @@ if __name__ == "__main__":
                         help="Frames per second for video emulation (only used with --video-file)")
     parser.add_argument("--display", action="store_true",
                         help="Display processed frames (for debugging)")
-    parser.add_argument('--sink', type=SinkType, default=SinkType.REDIS, choices=SinkType,
+    parser.add_argument('--sink', type=lambda sink: SinkType[sink], default=SinkType.REDIS, choices=list(SinkType),
                         help="Choose the message broker to use for publishing the processed frames")
     parser.add_argument("--training-save-dir", type=str,
                         help="Directory to save training images (optional)")
@@ -301,7 +314,9 @@ if __name__ == "__main__":
     logging.getLogger().setLevel(logging.INFO)
     args = parser.parse_args()
 
-    torch.multiprocessing.set_start_method('spawn')
+    if not args.no_extract:
+        import torch
+        torch.multiprocessing.set_start_method('spawn')
 
     logging.info(f"Running with settings:")
     logging.info(f"Video file: {args.video_file if args.video_file else 'Not provided (using real devices)'}")
