@@ -49,7 +49,7 @@ def load_model(model_path):
     return model
 
 
-model = load_model('./models/mobilenetv3_finetuned.pth')
+model = load_model('./models/image_classifier_mobilenetv3.pth')
 
 
 img_width, img_height = 96, 96
