@@ -12,6 +12,7 @@ from typing import Optional, Tuple, Union
 
 from state import Player, StateMessage, publish_to_redis, Stat, PlayerState
 from ocr import extract_player_state, CROP_COORDS
+from position_classifier import extract_player_position
 
 import redis
 
@@ -138,6 +139,8 @@ def process_frames(
                 player2_state = extract_player_state(frame, Player.P2)
                 player1_state = extract_player_items(frame, Player.P1, player1_state)
                 player2_state = extract_player_items(frame, Player.P2, player2_state)
+                player1_state = extract_player_position(frame, Player.P1, player1_state)
+                player2_state = extract_player_position(frame, Player.P2, player2_state)
 
             state_message = StateMessage(device_id, frame_count, race_id, player1_state, player2_state)
 
@@ -161,12 +164,12 @@ def process_frames(
                 generateCrops(device_id=device_id, frame_count=frame_count, frame=frame,
                               training_save_dir=training_save_dir)
 
-            if frame_count % 1000 == 0:
-                logging.info(
-                    f"Processed frame {frame_count} from device {device_id}, queue size: {process_queue.qsize()}")
-            else:
-                logging.debug(
-                    f"Processed frame {frame_count} from device {device_id}, queue size: {process_queue.qsize()}")
+            # if frame_count % 1000 == 0:
+            #     logging.info(
+            #         f"Processed frame {frame_count} from device {device_id}, queue size: {process_queue.qsize()}")
+            # else:
+            #     logging.debug(
+            #         f"Processed frame {frame_count} from device {device_id}, queue size: {process_queue.qsize()}")
 
             states = {
                 Player.P1: player1_state,
