@@ -32,6 +32,8 @@ lap_num_masks = load_templates("templates/lap_num", masks=True)
 # race_laps_templates = load_templates("templates/race_laps", mask_suffix='')
 # race_laps_masks = load_templates("templates/race_laps", mask_suffix='_mask.png')
 coin_mask = cv2.imread("templates/coins/mask_full.png", 0)
+position_templates = load_templates("templates/position")
+position_masks = load_templates("templates/position", masks=True)
 
 def match_template(image, template, mask, threshold=0.95):
     result = cv2.matchTemplate(image, template, cv2.TM_SQDIFF, mask=mask)
@@ -55,13 +57,13 @@ def recognize_lap_num(image, templates, masks):
         return best
     return None
 
-def recognize_race_laps(image, templates):
+def recognize_race_laps(image, templates, masks):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     # cv2.imshow('gray', gray)
 
     scores = {}
     for number, template in templates.items():
-        score = match_template(gray, template, coin_mask)
+        score = match_template(gray, template, masks[number])
         scores[number] = score
 
     logging.debug(scores)
@@ -77,6 +79,20 @@ def recognize_coins(image, templates):
     scores = {}
     for number, template in templates.items():
         score = match_template(gray, template, coin_mask)
+        scores[number] = score
+
+    logging.debug(scores)
+    best = min(scores, key=scores.get)
+    if best != 0:
+        return best
+    return None
+
+def recognize_position(image, templates, masks):
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    scores = {}
+    for number, template in templates.items():
+        score = match_template(gray, template, masks[number])
         scores[number] = score
 
     logging.debug(scores)
@@ -107,6 +123,9 @@ def extract_text_coins(frame: MatLike) -> str:
 def extract_text_lap_num(frame: MatLike) -> str:
     return recognize_lap_num(frame, lap_num_templates, lap_num_masks)
 
+def extract_text_position(frame: MatLike) -> str:
+    return recognize_position(frame, position_templates, position_masks)
+
 # def extract_text_race_laps(frame: MatLike) -> str:
 #     return recognize_race_laps(frame, race_laps_templates)
 
@@ -114,6 +133,7 @@ def extract_player_state(frame: MatLike, player: Player) -> PlayerState:
 
     coins_coords = CROP_COORDS[player][Stat.COINS]
     lap_num_coords = CROP_COORDS[player][Stat.LAP_NUM]
+    position_coords = CROP_COORDS[player][Stat.POSITION]
     # race_laps_coords = CROP_COORDS[player][Stat.RACE_LAPS]
     height, width, channels = frame.shape
     coins = extract_text_coins(
@@ -127,13 +147,16 @@ def extract_player_state(frame: MatLike, player: Player) -> PlayerState:
     # race_laps = extract_text_race_laps(
     #     frame[round(height * race_laps_coords[2]): round(height * race_laps_coords[3]), round(width * race_laps_coords[0]): round(width * race_laps_coords[1])]
     # )
+    position = extract_text_position(
+        frame[round(height * position_coords[2]): round(height * position_coords[3]), round(width * position_coords[0]): round(width * position_coords[1])]
+    )
 
     player_state = {
         Stat.COINS: coins,
         Stat.LAP_NUM: lap_num,
         Stat.RACE_LAPS: 3,
         # Stat.RACE_LAPS: race_laps,
-        Stat.POSITION: 1,
+        Stat.POSITION: position,
     }
 
     logging.debug(player_state)
