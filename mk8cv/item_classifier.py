@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 import torch
 import torch.nn as nn
 from torchvision import models, transforms
@@ -31,57 +32,98 @@ class_names = [
 
 classes = ['01', '02', '03', '04', '05', '07', '09', '10', '11', '12', '13', '15', '16', '18', '19', '21', '23', '24']
 
-
-# # Check if GPU is available (either cuda for nvidia or mps for apple silicon)
+# Use GPU if available (cuda or apple silicon)
 device = torch.device("cuda:0" if torch.cuda.is_available() else torch.device("mps") if torch.backends.mps.is_available() else  torch.device("cpu"))
 
+class ItemClassifier(ABC):
+    def __init__(self):
+        self._model = None
+        self._device = device
+        self._classes = classes
+        self._class_names = class_names
 
-def load_model(model_path):
-    model = models.mobilenet_v3_large(pretrained=False)
-    # Modify the classifier to match your number of classes
-    num_classes = len(classes)  # Replace with the number of classes in your dataset
-    model.classifier[3] = nn.Linear(model.classifier[3].in_features, num_classes)
+    @abstractmethod
+    def load(self, model_path: str):
+        pass
 
-    # Load the saved state dict
-    model.load_state_dict(torch.load(model_path, map_location=device))
-    model = model.to(device)
-    model.eval()
-    return model
+    @abstractmethod
+    def _predict(self, frame: MatLike):
+        pass
 
+    def extract_player_items(self, frame: MatLike, player: Player) -> tuple[Item, Item]:
+        """Extracts the player's items from the frame."""
+        height, width, channels = frame.shape
 
-model = load_model('./models/image_classifier_mobilenetv3.pth')
+        item1_coords = CROP_COORDS[player][Stat.ITEM1]
+        item1 = self._predict(frame[round(height * item1_coords[2]): round(height * item1_coords[3]), round(width * item1_coords[0]): round(width * item1_coords[1])])
 
+        item2_coords = CROP_COORDS[player][Stat.ITEM2]
+        item2 = self._predict(frame[round(height * item2_coords[2]): round(height * item2_coords[3]), round(width * item2_coords[0]): round(width * item2_coords[1])])
 
-img_width, img_height = 96, 96
-preprocess = transforms.Compose([
-    transforms.ToPILImage(),
-    transforms.Resize((img_width, img_height)),
-    transforms.ToTensor(),
-    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-])
-
-
-# Function to predict on a cv2 frame
-def predict_frame(frame, preprocess=preprocess):
-    image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    image = preprocess(image).unsqueeze(0).to(device)
-
-    with torch.no_grad():
-        output = model(image)
-        _, predicted = torch.max(output, 1)
-
-    predicted_class = classes[predicted.item()]
-    return predicted_class
+        return Item(int(item1)), Item(int(item2))
 
 
-def extract_player_items(frame: MatLike, player: Player) -> tuple[Item, Item]:
-    """Extracts the player's items from the frame."""
-    height, width, channels = frame.shape
+class MobileNetV3ItemClassifier(ItemClassifier):
+    def __init__(self):
+        super().__init__()
 
-    item1_coords = CROP_COORDS[player][Stat.ITEM1]
-    item1 = predict_frame(frame[round(height * item1_coords[2]): round(height * item1_coords[3]), round(width * item1_coords[0]): round(width * item1_coords[1])])
+    def load(self, model_path='./models/image_classifier_mobilenetv3.pth'):
+        self._model = models.mobilenet_v3_large(pretrained=False)
+        num_classes = len(self._classes)
+        self._model.classifier[3] = nn.Linear(self._model.classifier[3].in_features, num_classes)
+        self._model.load_state_dict(torch.load(model_path, map_location=self._device))
+        self._model = self._model.to(self._device)
+        self._model.eval()
+        return self._model
 
-    item2_coords = CROP_COORDS[player][Stat.ITEM2]
-    item2 = predict_frame(frame[round(height * item2_coords[2]): round(height * item2_coords[3]), round(width * item2_coords[0]): round(width * item2_coords[1])])
+    def _predict(self, frame: MatLike):
+        img_width, img_height = 96, 96
+        preprocess = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.Resize((img_width, img_height)),
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        ])
 
-    return Item(int(item1)), Item(int(item2))
+        image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        image = preprocess(image).unsqueeze(0).to(self._device)
+
+        with torch.no_grad():
+            output = self._model(image)
+            _, predicted = torch.max(output, 1)
+
+        predicted_class = classes[predicted.item()]
+        return predicted_class
+
+
+class ResNet18ItemClassifier(ItemClassifier):
+    def __init__(self):
+        super().__init__()
+
+    def load(self, model_path='./models/item_classifier_resnet18.pth'):
+        self._model = models.resnet18(pretrained=False)
+        num_classes = len(self._classes)
+        self._model.fc = torch.nn.Linear(self._model.fc.in_features, num_classes)
+        self._model.load_state_dict(torch.load(model_path, map_location=self._device))
+        self._model = self._model.to(self._device)
+        self._model.eval()
+        return self._model
+    
+    def _predict(self, frame: MatLike):
+        img_width, img_height = 96, 96
+        preprocess = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.Resize((img_width, img_height)),
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        ])
+
+        image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        image = preprocess(image).unsqueeze(0).to(self._device)
+
+        with torch.no_grad():
+            output = self._model(image)
+            _, predicted = torch.max(output, 1)
+
+        predicted_class = classes[predicted.item()]
+        return predicted_class
