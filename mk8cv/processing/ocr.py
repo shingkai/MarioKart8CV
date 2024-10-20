@@ -5,8 +5,8 @@ import cv2
 import numpy as np
 from cv2.typing import MatLike
 
-from aois import CROP_COORDS
-from state import Player, Stat, PlayerState
+from mk8cv.processing.aois import CROP_COORDS
+from mk8cv.data.state import Player, Stat
 
 
 TESSERACT_STATS = [Stat.POSITION, Stat.COINS, Stat.RACE_LAPS, Stat.LAP_NUM]

@@ -1,5 +1,5 @@
 
-from state import Player, Stat
+from mk8cv.data.state import Player, Stat
 
 CROP_COORDS = {
     Player.P1 : {
