@@ -2,8 +2,8 @@ import pytest
 import cv2
 import json
 from pathlib import Path
-from mk8cv.item_classifier import extract_player_items
-from mk8cv.state import Item, Player
+from mk8cv.models.item_classifier import MobileNetV3ItemClassifier
+from mk8cv.data.state import Item, Player
 
 # Assuming you have a JSON file with frame-by-frame annotations
 ANNOTATIONS_FILE = Path("tests/data/item_annotations.json")
@@ -12,12 +12,6 @@ VIDEO_FILE = Path("tests/data/test_video.mp4")
 def load_annotations(file_path):
     with open(file_path, 'r') as f:
         return json.load(f)
-
-@pytest.fixture(scope="module")
-def video_capture():
-    cap = cv2.VideoCapture(str(VIDEO_FILE))
-    yield cap
-    cap.release()
 
 @pytest.fixture(scope="module")
 def annotations():

@@ -21,7 +21,7 @@ class ItemClassifier(ABC):
         self._classes = classes
 
     @abstractmethod
-    def load(self, model_path: str) -> None:
+    def load(self, model_path: str = None) -> None:
         pass
 
     @abstractmethod
