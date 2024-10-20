@@ -8,11 +8,8 @@ from queue import Full, Empty
 import time
 from typing import Optional, Tuple, Union
 
-# import torch
-
-from state import Player, StateMessage, publish_to_redis, Stat, PlayerState
-from ocr import extract_player_state, CROP_COORDS
-from position_classifier import extract_player_position
+from state import Player, StateMessage, publish_to_redis, Stat, PlayerState, Item
+from ocr import CROP_COORDS, extract_coins, extract_position, extract_laps
 
 import redis
 
@@ -45,8 +42,6 @@ def capture_and_process(
     frames_processed = 0
 
     while True:
-        if frame_count > 1000:
-            return
         ret, frame = cap.read()
         if not ret:
             if isinstance(source, str):  # Video file
@@ -107,8 +102,10 @@ def process_frames(
         process_queue: ProcessQueue, stop_event: Event, display: bool,
         training_save_dir: str,
         sink_type: SinkType = SinkType.REDIS,
-        no_extract: bool = False
+        extract: list[Stat] = None
 ) -> None:
+    if extract is None:
+        extract = [stat for stat in Stat]
     match sink_type:
         case SinkType.REDIS:
             sink = redis.Redis()
@@ -117,30 +114,40 @@ def process_frames(
     logging.getLogger().setLevel(logging.INFO)
     start_time = time.time()
     frames_processed = 0
-    if not no_extract:
+    if Stat.ITEM1 in extract or Stat.ITEM2 in extract:
         from item_classifier import extract_player_items
 
     while not stop_event.is_set():
         try:
             device_id, frame_count, frame = process_queue.get(timeout=1)
-            if frame_count >= 1000:
-                return
 
             race_id = 0  # This will need to be extracted from our CV thingy
 
             if frame_count % 6000 == 0:
                 race_id += 1
 
-            if no_extract:
+            if extract is None or not extract:
                 player1_state = PlayerState.generate_random_state()
                 player2_state = PlayerState.generate_random_state()
             else:
-                player1_state = extract_player_state(frame, Player.P1)
-                player2_state = extract_player_state(frame, Player.P2)
-                player1_state = extract_player_items(frame, Player.P1, player1_state)
-                player2_state = extract_player_items(frame, Player.P2, player2_state)
-                player1_state = extract_player_position(frame, Player.P1, player1_state)
-                player2_state = extract_player_position(frame, Player.P2, player2_state)
+                player1_state = PlayerState(-1, Item.NONE, Item.NONE, -1, -1, -1)
+                player2_state = PlayerState(-1, Item.NONE, Item.NONE, -1, -1, -1)
+
+            if Stat.COINS in extract:
+                player1_state.coins = extract_coins(frame, Player.P1)
+                player2_state.coins = extract_coins(frame, Player.P2)
+
+            if Stat.LAP_NUM or Stat.RACE_LAPS in extract:
+                player1_state.lap, player1_state.race_laps = extract_laps(frame, Player.P1)
+                player2_state.lap, player2_state.race_laps = extract_laps(frame, Player.P2)
+
+            if Stat.ITEM1 in extract or Stat.ITEM2 in extract:
+                player1_state.item1, player1_state.item2 = extract_player_items(frame, Player.P1)
+                player2_state.item1, player2_state.item2 = extract_player_items(frame, Player.P2)
+
+            if Stat.POSITION in extract:
+                player1_state.position = extract_position(frame, Player.P1)
+                player2_state.position = extract_position(frame, Player.P2)
 
             state_message = StateMessage(device_id, frame_count, race_id, player1_state, player2_state)
 
@@ -176,6 +183,8 @@ def process_frames(
                 Player.P2: player2_state
             }
 
+            height, width, channels = frame.shape
+
             if display:
                 for player in [Player.P1, Player.P2]:
                     crop_coords = CROP_COORDS[player]
@@ -189,26 +198,26 @@ def process_frames(
                         round(frame.shape[1] * crop_coords[Stat.LAP_NUM][0]),
                         round(frame.shape[0] * (crop_coords[Stat.LAP_NUM][2] - 0.015))
                     )
-                    add_text(frame, f'{states[player].lap}/{states[player].race_laps}', lap_text_position, scale=1,
-                             thickness=3)
+                    add_text(frame, f'{states[player].lap}/{states[player].race_laps}', lap_text_position, scale=height / 1080,
+                             thickness=int(3 * (height / 1080)))
 
                     position_text_position = (
                         round(frame.shape[1] * crop_coords[Stat.POSITION][0]),
                         round(frame.shape[0] * (crop_coords[Stat.POSITION][2] - 0.015))
                     )
-                    add_text(frame, f'{states[player].position}', position_text_position)
+                    add_text(frame, f'{states[player].position}', position_text_position, scale=(height / 1080), thickness=int(3 * (height / 1080)))
 
                     item1_text_position = (
                         round(frame.shape[1] * crop_coords[Stat.ITEM1][0]),
                         round(frame.shape[0] * (crop_coords[Stat.ITEM1][2] - 0.015))
                     )
-                    add_text(frame, f'{states[player].item1}', item1_text_position, scale=1, thickness=3)
+                    add_text(frame, f'{states[player].item1}', item1_text_position, scale=(height / 1080), thickness=int(3 * (height / 1080)))
 
                     item2_text_position = (
                         round(frame.shape[1] * crop_coords[Stat.ITEM2][0]),
                         round(frame.shape[0] * (crop_coords[Stat.ITEM2][2] - 0.015))
                     )
-                    add_text(frame, f'{states[player].item2}', item2_text_position, scale=1, thickness=3)
+                    add_text(frame, f'{states[player].item2}', item2_text_position, scale=(height / 1080), thickness=int(3 * (height / 1080)))
 
                     for crop, coords in crop_coords.items():
                         cv2.rectangle(frame, (round(frame.shape[1] * coords[0]), round(frame.shape[0] * coords[2])),
@@ -266,7 +275,7 @@ def main(_args: argparse.Namespace) -> None:
     processing_processes = []
     for _ in range(_args.threads):
         process = Process(target=process_frames,
-                          args=(process_queue, stop_event, _args.display, _args.training_save_dir, _args.sink, _args.no_extract))
+                          args=(process_queue, stop_event, _args.display, _args.training_save_dir, _args.sink, _args.extract))
         process.start()
         processing_processes.append(process)
 
@@ -289,6 +298,13 @@ def main(_args: argparse.Namespace) -> None:
     if _args.display:
         cv2.destroyAllWindows()
 
+def parse_enum(enum_class):
+    def parse(value):
+        try:
+            return enum_class(value)
+        except ValueError:
+            raise argparse.ArgumentTypeError(f"Invalid {enum_class.__name__} value: {value}")
+    return parse
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Mario Kart 8 Video Processing Pipeline")
@@ -312,12 +328,12 @@ if __name__ == "__main__":
                         help="Choose the message broker to use for publishing the processed frames")
     parser.add_argument("--training-save-dir", type=str,
                         help="Directory to save training images (optional)")
-    parser.add_argument("--no-extract", action="store_true", help="Skip extracting player state and items", default=False)
+    parser.add_argument("--extract", type=parse_enum(Stat), nargs='*', choices=list(Stat), default=list(Stat), help="Skip extracting player state and items")
 
     logging.getLogger().setLevel(logging.INFO)
     args = parser.parse_args()
 
-    if not args.no_extract:
+    if args.extract is not None and args.extract:
         import torch
         torch.multiprocessing.set_start_method('spawn')
 
@@ -331,7 +347,7 @@ if __name__ == "__main__":
     logging.info(f"FPS (for video file): {args.fps}")
     logging.info(f"Display frames: {args.display}")
     logging.info(f"Sink: {args.sink}")
-    logging.info(f"Extract player state and items: {not args.no_extract}")
+    logging.info(f"Extracting: {args.extract}")
     logging.info(
         f"Save training images to directory: {args.training_save_dir if args.training_save_dir else 'Not provided (not saving training images)'}")
 

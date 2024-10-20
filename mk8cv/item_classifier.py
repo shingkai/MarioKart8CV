@@ -74,7 +74,7 @@ def predict_frame(frame, preprocess=preprocess):
     return predicted_class
 
 
-def extract_player_items(frame: MatLike, player: Player, state: PlayerState) -> PlayerState:
+def extract_player_items(frame: MatLike, player: Player) -> tuple[Item, Item]:
     """Extracts the player's items from the frame."""
     height, width, channels = frame.shape
 
@@ -84,6 +84,4 @@ def extract_player_items(frame: MatLike, player: Player, state: PlayerState) -> 
     item2_coords = CROP_COORDS[player][Stat.ITEM2]
     item2 = predict_frame(frame[round(height * item2_coords[2]): round(height * item2_coords[3]), round(width * item2_coords[0]): round(width * item2_coords[1])])
 
-    state.item1 = Item(int(item1))
-    state.item2 = Item(int(item2))
-    return state
+    return Item(int(item1)), Item(int(item2))

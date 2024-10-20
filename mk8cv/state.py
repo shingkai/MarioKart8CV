@@ -1,6 +1,5 @@
 import json
 import random
-from collections import Counter
 from enum import Enum
 
 import redis
@@ -67,14 +66,14 @@ class PlayerState:
         }
     
     @classmethod
-    def from_dict(self, data: dict[Stat, any]):
+    def from_dict(cls, data: dict[Stat, any]):
         return PlayerState(
             position=data[Stat.POSITION],
             item1=Item.NONE,
             item2=Item.NONE,
             coins=data[Stat.COINS],
             lap_num=data[Stat.LAP_NUM],
-        race_laps=data[Stat.RACE_LAPS])\
+        race_laps=data[Stat.RACE_LAPS])
 
     @staticmethod
     def generate_random_state():
