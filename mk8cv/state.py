@@ -45,6 +45,12 @@ class Item(int, Enum):
     BOO = 23
     NONE = 24
 
+    def __str__(self):
+        return self.name.lower().replace('_', ' ')
+
+    def __repr__(self):
+        return self.__str__()
+
 
 class PlayerState:
     def __init__(self, position: int, item1: Item, item2: Item, coins: int = 0, lap_num: int = 1, race_laps: int = 3):
@@ -54,26 +60,6 @@ class PlayerState:
         self.item1 = item1
         self.item2 = item2
         self.coins = coins
-
-    def to_dict(self) -> dict[str, any]:
-        return {
-            Stat.COINS: self.coins,
-            Stat.LAP_NUM: self.lap_num,
-            Stat.RACE_LAPS: self.race_laps,
-            Stat.POSITION: self.position,
-            Stat.ITEM1: self.item1,
-            Stat.ITEM2: self.item2,
-        }
-    
-    @classmethod
-    def from_dict(cls, data: dict[Stat, any]):
-        return PlayerState(
-            position=data[Stat.POSITION],
-            item1=Item.NONE,
-            item2=Item.NONE,
-            coins=data[Stat.COINS],
-            lap_num=data[Stat.LAP_NUM],
-        race_laps=data[Stat.RACE_LAPS])
 
     @staticmethod
     def generate_random_state():
@@ -86,6 +72,16 @@ class PlayerState:
             race_laps=3
         )
 
+    def __repr__(self):
+        return json.dumps({
+            Stat.POSITION: self.position,
+            Stat.LAP_NUM: self.lap,
+            Stat.ITEM1: self.item1,
+            Stat.ITEM2: self.item2,
+            Stat.COINS: self.coins,
+            Stat.RACE_LAPS: self.race_laps
+        }, default=str)
+
 
 class StateMessage:
     def __init__(self, device_id: int, frame_number: int, race_id: int, player1_state: PlayerState,
@@ -96,16 +92,15 @@ class StateMessage:
         self.player1_state = player1_state
         self.player2_state = player2_state
 
-    def to_json(self) -> str:
+    def __repr__(self):
         return json.dumps({
-            "race_id": self.race_id,
-            "device_id": self.device_id,
+            # "race_id": self.race_id,
+            # "device_id": self.device_id,
             "frame_number": self.frame_number,
-            Player.P1: self.player1_state.__dict__ if self.player1_state else {},
-            Player.P2: self.player2_state.__dict__ if self.player2_state else {}
-        })
-
+            Player.P1: self.player1_state if self.player1_state else {},
+            Player.P2: self.player2_state if self.player2_state else {}
+        }, default=str)
 
 # Option 1: Redis Pub/Sub
 def publish_to_redis(redis_client: redis.Redis, channel: str, message: StateMessage):
-    redis_client.publish(channel, message.to_json())
+    redis_client.publish(channel, json.dumps(message, default=str))

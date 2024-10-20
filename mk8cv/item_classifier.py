@@ -5,7 +5,7 @@ from torchvision import models, transforms
 import cv2
 from cv2.typing import MatLike
 
-from state import Player, Stat, PlayerState, Item
+from state import Player, Stat, Item
 from aois import CROP_COORDS
 
 # 

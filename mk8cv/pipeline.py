@@ -1,17 +1,16 @@
+import json
 import logging
 from enum import Enum
 import os
 import cv2
 import argparse
-from multiprocessing import Process, Queue as ProcessQueue, Event
+from multiprocessing import Process, Event, Queue
 from queue import Full, Empty
 import time
 from typing import Optional, Tuple, Union
 
 from state import Player, StateMessage, publish_to_redis, Stat, PlayerState, Item
-from ocr import CROP_COORDS, extract_coins, extract_position, extract_laps
-from item_classifier import ItemClassifier
-from position_classifier import PositionClassifier
+from ocr import CROP_COORDS, extract_coins, extract_laps
 
 import redis
 
@@ -21,14 +20,17 @@ def capture_and_process(
         device_id: int,
         downscale_resolution: Tuple[int, int],
         frame_skip: int,
-        process_queue: ProcessQueue,
+        process_queue: Queue,
+        stop_event: Event,
         fps: Optional[float] = None
 ) -> None:
     logging.getLogger().setLevel(logging.INFO)
+    logging.info(f"Starting capture process for device {device_id}...")
 
     cap = cv2.VideoCapture(source)
     if not cap.isOpened():
         logging.error(f"Error opening video source: {source}")
+        stop_event.set()
         return
 
     frame_time = None
@@ -43,14 +45,16 @@ def capture_and_process(
     start_time = time.time()
     frames_processed = 0
 
-    while True:
+    while not stop_event.is_set():
         ret, frame = cap.read()
         if not ret:
             if isinstance(source, str):  # Video file
-                cap.set(cv2.CAP_PROP_POS_FRAMES, 0)  # Loop the video
-                continue
+                logging.info(f"End of video file reached for device {device_id}")
+                stop_event.set()
+                break
             else:
-                return
+                stop_event.set()
+                break
 
         frame_count += 1
         if frame_count % (frame_skip + 1) != 0:
@@ -79,8 +83,10 @@ def capture_and_process(
                 time.sleep(1)
                 sleep *= 2
         if isinstance(source, str) and frame_time:  # Video file
-            print('sleeping')
             time.sleep(frame_time)  # Simulate real-time capture
+
+    cap.release()
+    logging.info(f"Capture process for device {device_id} finished")
 
 
 class SinkType(Enum):
@@ -101,11 +107,13 @@ def add_text(frame: cv2.typing.MatLike, text: str, position: Tuple[int, int], co
 
 # Modify the process_frames function to use one of these methods
 def process_frames(
-        process_queue: ProcessQueue, stop_event: Event, display: bool,
+        process_queue: Queue, stop_event: Event, display: bool,
         training_save_dir: str,
         sink_type: SinkType = SinkType.REDIS,
         extract: list[Stat] = None
 ) -> None:
+    logging.getLogger().setLevel(logging.INFO)
+    logging.info("Starting frame processor...")
     if extract is None:
         extract = [stat for stat in Stat]
     match sink_type:
@@ -129,121 +137,121 @@ def process_frames(
         position_model: PositionClassifier = TemplatePositionClassifier()
         position_model.load()
 
-    while not stop_event.is_set():
-        try:
-            device_id, frame_count, frame = process_queue.get(timeout=1)
+    with open('item_annotations.json', 'w') as f:
+        f.write('[')
+        logging.info('Starting frame processing loop...')
+        while not stop_event.is_set():
+            try:
+                device_id, frame_count, frame = process_queue.get(timeout=1)
 
-            race_id = 0  # This will need to be extracted from our CV thingy
+                race_id = 0  # This will need to be extracted from our CV thingy
 
-            if frame_count % 6000 == 0:
-                race_id += 1
+                if frame_count % 6000 == 0:
+                    race_id += 1
 
-            if extract is None or not extract:
-                player1_state = PlayerState.generate_random_state()
-                player2_state = PlayerState.generate_random_state()
-            else:
-                player1_state = PlayerState(-1, Item.NONE, Item.NONE, -1, -1, -1)
-                player2_state = PlayerState(-1, Item.NONE, Item.NONE, -1, -1, -1)
+                if extract is None or not extract:
+                    player1_state = PlayerState.generate_random_state()
+                    player2_state = PlayerState.generate_random_state()
+                else:
+                    player1_state = PlayerState(-1, Item.NONE, Item.NONE, -1, -1, -1)
+                    player2_state = PlayerState(-1, Item.NONE, Item.NONE, -1, -1, -1)
 
-            if Stat.COINS in extract:
-                player1_state.coins = extract_coins(frame, Player.P1)
-                player2_state.coins = extract_coins(frame, Player.P2)
+                if Stat.COINS in extract:
+                    player1_state.coins = extract_coins(frame, Player.P1)
+                    player2_state.coins = extract_coins(frame, Player.P2)
 
-            if Stat.LAP_NUM or Stat.RACE_LAPS in extract:
-                player1_state.lap, player1_state.race_laps = extract_laps(frame, Player.P1)
-                player2_state.lap, player2_state.race_laps = extract_laps(frame, Player.P2)
+                if Stat.LAP_NUM or Stat.RACE_LAPS in extract:
+                    player1_state.lap, player1_state.race_laps = extract_laps(frame, Player.P1)
+                    player2_state.lap, player2_state.race_laps = extract_laps(frame, Player.P2)
 
-            if Stat.ITEM1 in extract or Stat.ITEM2 in extract:
-                player1_state.item1, player1_state.item2 = item_model.extract_player_items(frame, Player.P1)
-                player2_state.item1, player2_state.item2 = item_model.extract_player_items(frame, Player.P2)
+                if Stat.ITEM1 in extract or Stat.ITEM2 in extract:
+                    player1_state.item1, player1_state.item2 = item_model.extract_player_items(frame, Player.P1)
+                    player2_state.item1, player2_state.item2 = item_model.extract_player_items(frame, Player.P2)
 
-            if Stat.POSITION in extract:
-                player1_state.position = position_model.extract_player_position(frame, Player.P1)
-                player2_state.position = position_model.extract_player_position(frame, Player.P2)
+                if Stat.POSITION in extract:
+                    player1_state.position = position_model.extract_player_position(frame, Player.P1)
+                    player2_state.position = position_model.extract_player_position(frame, Player.P2)
 
-            state_message = StateMessage(device_id, frame_count, race_id, player1_state, player2_state)
+                state_message = StateMessage(device_id, frame_count, race_id, player1_state, player2_state)
 
-            # Choose one of the following based on your chosen method:
-            match sink_type:
-                case SinkType.REDIS:
-                    publish_to_redis(sink, "mario_kart_states", state_message)
-                case _:
-                    logging.debug("state_message: %s", state_message.to_json())
+                f.write(json.dumps(state_message, indent=2, default=str) + ',')
 
-            frames_processed += 1
-            elapsed_time = time.time() - start_time
-            if elapsed_time >= 1.0:
-                fps = frames_processed / elapsed_time
-                logging.info(f"Processing FPS: {fps:.2f}")
-                frames_processed = 0
-                start_time = time.time()
+                # Choose one of the following based on your chosen method:
+                match sink_type:
+                    case SinkType.REDIS:
+                        publish_to_redis(sink, "mario_kart_states", state_message)
+                    case _:
+                        logging.debug("state_message: %s", json.dumps(state_message))
 
-            logging.debug(f"Processed and published frame {frame_count} from device {device_id}")
-            if training_save_dir:
-                generateCrops(device_id=device_id, frame_count=frame_count, frame=frame,
-                              training_save_dir=training_save_dir)
+                frames_processed += 1
+                elapsed_time = time.time() - start_time
+                if elapsed_time >= 1.0:
+                    fps = frames_processed / elapsed_time
+                    logging.info(f"Processing FPS: {fps:.2f}")
+                    frames_processed = 0
+                    start_time = time.time()
 
-            # if frame_count % 1000 == 0:
-            #     logging.info(
-            #         f"Processed frame {frame_count} from device {device_id}, queue size: {process_queue.qsize()}")
-            # else:
-            #     logging.debug(
-            #         f"Processed frame {frame_count} from device {device_id}, queue size: {process_queue.qsize()}")
+                logging.debug(f"Processed and published frame {frame_count} from device {device_id}")
+                if training_save_dir:
+                    generateCrops(device_id=device_id, frame_count=frame_count, frame=frame,
+                                  training_save_dir=training_save_dir)
 
-            states = {
-                Player.P1: player1_state,
-                Player.P2: player2_state
-            }
+                states = {
+                    Player.P1: player1_state,
+                    Player.P2: player2_state
+                }
 
-            height, width, channels = frame.shape
+                height, width, channels = frame.shape
 
-            if display:
-                for player in [Player.P1, Player.P2]:
-                    crop_coords = CROP_COORDS[player]
-                    coins_text_position = (
-                        round(frame.shape[1] * crop_coords[Stat.COINS][0]),
-                        round(frame.shape[0] * (crop_coords[Stat.COINS][2] - 0.015))
-                    )
-                    add_text(frame, f'{states[player].coins}', coins_text_position)
+                if display:
+                    for player in [Player.P1, Player.P2]:
+                        crop_coords = CROP_COORDS[player]
+                        coins_text_position = (
+                            round(frame.shape[1] * crop_coords[Stat.COINS][0]),
+                            round(frame.shape[0] * (crop_coords[Stat.COINS][2] - 0.015))
+                        )
+                        add_text(frame, f'{states[player].coins}', coins_text_position)
 
-                    lap_text_position = (
-                        round(frame.shape[1] * crop_coords[Stat.LAP_NUM][0]),
-                        round(frame.shape[0] * (crop_coords[Stat.LAP_NUM][2] - 0.015))
-                    )
-                    add_text(frame, f'{states[player].lap}/{states[player].race_laps}', lap_text_position, scale=height / 1080,
-                             thickness=int(3 * (height / 1080)))
+                        lap_text_position = (
+                            round(frame.shape[1] * crop_coords[Stat.LAP_NUM][0]),
+                            round(frame.shape[0] * (crop_coords[Stat.LAP_NUM][2] - 0.015))
+                        )
+                        add_text(frame, f'{states[player].lap}/{states[player].race_laps}', lap_text_position, scale=height / 1080,
+                                 thickness=int(3 * (height / 1080)))
 
-                    position_text_position = (
-                        round(frame.shape[1] * crop_coords[Stat.POSITION][0]),
-                        round(frame.shape[0] * (crop_coords[Stat.POSITION][2] - 0.015))
-                    )
-                    add_text(frame, f'{states[player].position}', position_text_position, scale=(height / 1080), thickness=int(3 * (height / 1080)))
+                        position_text_position = (
+                            round(frame.shape[1] * crop_coords[Stat.POSITION][0]),
+                            round(frame.shape[0] * (crop_coords[Stat.POSITION][2] - 0.015))
+                        )
+                        add_text(frame, f'{states[player].position}', position_text_position, scale=(height / 1080), thickness=int(3 * (height / 1080)))
 
-                    item1_text_position = (
-                        round(frame.shape[1] * crop_coords[Stat.ITEM1][0]),
-                        round(frame.shape[0] * (crop_coords[Stat.ITEM1][2] - 0.015))
-                    )
-                    add_text(frame, f'{states[player].item1}', item1_text_position, scale=(height / 1080), thickness=int(3 * (height / 1080)))
+                        item1_text_position = (
+                            round(frame.shape[1] * crop_coords[Stat.ITEM1][0]),
+                            round(frame.shape[0] * (crop_coords[Stat.ITEM1][2] - 0.015))
+                        )
+                        add_text(frame, f'{states[player].item1}', item1_text_position, scale=(height / 1080), thickness=int(3 * (height / 1080)))
 
-                    item2_text_position = (
-                        round(frame.shape[1] * crop_coords[Stat.ITEM2][0]),
-                        round(frame.shape[0] * (crop_coords[Stat.ITEM2][2] - 0.015))
-                    )
-                    add_text(frame, f'{states[player].item2}', item2_text_position, scale=(height / 1080), thickness=int(3 * (height / 1080)))
+                        item2_text_position = (
+                            round(frame.shape[1] * crop_coords[Stat.ITEM2][0]),
+                            round(frame.shape[0] * (crop_coords[Stat.ITEM2][2] - 0.015))
+                        )
+                        add_text(frame, f'{states[player].item2}', item2_text_position, scale=(height / 1080), thickness=int(3 * (height / 1080)))
 
-                    for crop, coords in crop_coords.items():
-                        cv2.rectangle(frame, (round(frame.shape[1] * coords[0]), round(frame.shape[0] * coords[2])),
-                                      (round(frame.shape[1] * coords[1]), round(frame.shape[0] * coords[3])),
-                                      (255, 0, 0), 2)
-                cv2.imshow(f"Device {device_id}", frame)
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    stop_event.set()
+                        for crop, coords in crop_coords.items():
+                            cv2.rectangle(frame, (round(frame.shape[1] * coords[0]), round(frame.shape[0] * coords[2])),
+                                          (round(frame.shape[1] * coords[1]), round(frame.shape[0] * coords[3])),
+                                          (255, 0, 0), 2)
+                    cv2.imshow(f"Device {device_id}", frame)
+                    if cv2.waitKey(1) & 0xFF == ord('q'):
+                        stop_event.set()
 
-        except Empty:
-            print('empty')
-            logging.info("Queue is empty. Waiting for frames...")
-            stop_event.set()
-            continue
+            except Empty:
+                print('empty')
+                logging.info("Queue is empty. Waiting for frames...")
+                stop_event.set()
+                continue
+
+        f.write(']')
 
 def generateCrops(device_id: int, frame_count: int, frame: cv2.typing.MatLike, training_save_dir: str) -> None:
     # formatted as "crop_nome" : (x1, x2, y1, y2)
@@ -263,17 +271,19 @@ def generateCrops(device_id: int, frame_count: int, frame: cv2.typing.MatLike, t
 
 def main(_args: argparse.Namespace) -> None:
     # Create a process queue for frame processing
-    process_queue = ProcessQueue(maxsize=_args.queue_size)
+    m = multiprocessing.Manager()
+    process_queue = m.Queue(maxsize=_args.queue_size)
 
     # Create an event to signal process termination
-    stop_event = Event()
+    stop_capture_event = Event()
+    stop_process_event = Event()
 
     # Create and start capture processes
     capture_processes = []
     for i in range(_args.num_devices):
         source = _args.video_file if _args.video_file else i
         process = Process(target=capture_and_process,
-                          args=(source, i, _args.resolution, _args.frame_skip, process_queue, _args.fps))
+                          args=(source, i, _args.resolution, _args.frame_skip, process_queue, stop_capture_event, _args.fps))
         process.start()
         capture_processes.append(process)
 
@@ -287,7 +297,8 @@ def main(_args: argparse.Namespace) -> None:
     processing_processes = []
     for _ in range(_args.threads):
         process = Process(target=process_frames,
-                          args=(process_queue, stop_event, _args.display, _args.training_save_dir, _args.sink, _args.extract))
+                          args=(
+                          process_queue, stop_process_event, _args.display, _args.training_save_dir, _args.sink, _args.extract))
         process.start()
         processing_processes.append(process)
 
@@ -297,13 +308,25 @@ def main(_args: argparse.Namespace) -> None:
 
     # Main loop
     try:
-        while not stop_event.is_set():
+        while not (stop_process_event.is_set() and stop_capture_event.is_set()):
             time.sleep(1)  # Sleep to reduce CPU usage of main thread
+
+            # Check if all capture processes have finished
+            if not stop_capture_event.is_set():
+                if all(not p.is_alive() for p in capture_processes):
+                    logging.info("All capture processes have finished")
+                    stop_capture_event.set()
+            if not stop_process_event.is_set():
+                if all(not p.is_alive() for p in processing_processes):
+                    logging.info("All processing processes have finished")
+                    stop_process_event.set()
+
     except KeyboardInterrupt:
         logging.info("Shutting down...")
 
     # Clean up
-    stop_event.set()
+    stop_capture_event.set()
+    stop_process_event.set()
     for process in capture_processes + processing_processes:
         process.join()
 
