@@ -123,8 +123,10 @@ def process_frames(
         item_model.load()
 
     if Stat.POSITION in extract:
-        from position_classifier import MobileNetV3PositionClassifier
-        position_model: PositionClassifier = MobileNetV3PositionClassifier()
+        # from position_classifier import MobileNetV3PositionClassifier
+        # position_model: PositionClassifier = MobileNetV3PositionClassifier()
+        from position_classifier import TemplatePositionClassifier
+        position_model: PositionClassifier = TemplatePositionClassifier()
         position_model.load()
 
     while not stop_event.is_set():

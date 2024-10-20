@@ -1,4 +1,7 @@
 from abc import ABC, abstractmethod
+import logging
+import os
+
 import torch
 import torch.nn as nn
 from torchvision import models, transforms
@@ -69,3 +72,47 @@ class MobileNetV3PositionClassifier(PositionClassifier):
         predicted_class = classes[predicted.item()]
         return predicted_class
 
+
+class TemplatePositionClassifier(PositionClassifier):
+    def __init__(self):
+        super().__init__()
+        self._templates = None
+        self._masks = None
+
+    def load(self, model_path: str = "./templates/position"):
+        self._templates = self._load_templates(model_path)
+        self._masks = self._load_templates(model_path, 'mask')
+
+    def _predict(self, frame: MatLike):
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+        scores = {}
+        for number, template in self._templates.items():
+            score = self._match_template(gray, template, self._masks[number])
+            scores[number] = score
+
+        logging.debug(scores)
+        best = min(scores, key=scores.get)
+        if best != 0:
+            return best
+        return None
+
+    def _load_templates(self, template_dir: str, masks=False):
+        templates = {}
+        for filename in os.listdir(template_dir):
+            if filename.endswith('.png'):
+                if masks and not filename.endswith('_mask.png'):
+                    continue
+                elif not masks and (filename.endswith('_mask.png') or 'mask' in filename):
+                    continue
+                number = filename.split('.')[0]
+                if masks:
+                    number = number.split('_')[0]
+                template = cv2.imread(os.path.join(template_dir, filename), 0)
+                templates[number] = template
+        return templates
+
+    def _match_template(self, image, template, mask, threshold=0.95):
+        result = cv2.matchTemplate(image, template, cv2.TM_SQDIFF, mask=mask)
+        min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
+        return min_val
