@@ -2,8 +2,6 @@ import json
 import random
 from enum import Enum
 
-import redis
-
 
 class Player(str, Enum):
     P1 = 'p1'
@@ -51,6 +49,30 @@ class Item(int, Enum):
     def __repr__(self):
         return self.__str__()
 
+class StateEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Item):
+            return str(obj.name)
+        elif isinstance(obj, PlayerState):
+            return {
+                'lap': obj.lap,
+                'race_laps': obj.race_laps,
+                'position': obj.position,
+                'item1': obj.item1.name,
+                'item2': obj.item2.name,
+                'coins': obj.coins
+            }
+        elif isinstance(obj, StateMessage):
+            return {
+                'race_id': obj.race_id,
+                'device_id': obj.device_id,
+                'frame_number': obj.frame_number,
+                'player1_state': obj.player1_state,
+                'player2_state': obj.player2_state
+            }
+        else:
+            return super().default(obj)
+
 
 class PlayerState:
     def __init__(self, position: int, item1: Item, item2: Item, coins: int = 0, lap_num: int = 1, race_laps: int = 3):
@@ -76,11 +98,11 @@ class PlayerState:
         return json.dumps({
             Stat.POSITION: self.position,
             Stat.LAP_NUM: self.lap,
-            Stat.ITEM1: self.item1,
-            Stat.ITEM2: self.item2,
+            Stat.ITEM1: self.item1.name,
+            Stat.ITEM2: self.item2.name,
             Stat.COINS: self.coins,
             Stat.RACE_LAPS: self.race_laps
-        }, default=str)
+        }, cls=StateEncoder)
 
 
 class StateMessage:
@@ -94,13 +116,10 @@ class StateMessage:
 
     def __repr__(self):
         return json.dumps({
-            # "race_id": self.race_id,
-            # "device_id": self.device_id,
+            "race_id": self.race_id,
+            "device_id": self.device_id,
             "frame_number": self.frame_number,
             Player.P1: self.player1_state if self.player1_state else {},
             Player.P2: self.player2_state if self.player2_state else {}
-        }, default=str)
+        }, cls=StateEncoder)
 
-# Option 1: Redis Pub/Sub
-def publish_to_redis(redis_client: redis.Redis, channel: str, message: StateMessage):
-    redis_client.publish(channel, json.dumps(message, default=str))

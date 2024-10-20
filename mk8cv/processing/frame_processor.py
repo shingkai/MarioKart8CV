@@ -1,3 +1,4 @@
+import csv
 import json
 import logging
 import os
@@ -9,8 +10,8 @@ import time
 
 from mk8cv.models.position_classifier import PositionClassifier
 from mk8cv.models.item_classifier import ItemClassifier
-from mk8cv.sinks.sink import SinkType
-from mk8cv.data.state import Player, StateMessage, publish_to_redis, Stat, PlayerState, Item
+from mk8cv.sinks.sink import SinkType, publish_to_redis
+from mk8cv.data.state import Player, StateMessage, Stat, PlayerState, Item, StateEncoder
 
 from mk8cv.processing.ocr import extract_coins, extract_laps
 from mk8cv.processing.aois import CROP_COORDS
@@ -69,7 +70,24 @@ def process_frames(
         position_model: PositionClassifier = CannyMaskPositionClassifier()
         position_model.load()
 
-    with open('item_annotations.json', 'w') as f:
+    with open('item_annotations.csv', 'w') as f:
+        fieldnames = [
+            'frame_number',
+            'player1_position',
+            'player1_item1',
+            'player1_item2',
+            'player1_coins',
+            'player1_lap_num',
+            'player1_race_laps',
+            'player2_position',
+            'player2_item1',
+            'player2_item2',
+            'player2_coins',
+            'player2_lap_num',
+            'player2_race_laps'
+        ]
+        csvwriter = csv.DictWriter(f, fieldnames=fieldnames)
+        csvwriter.writeheader()
         logging.info('Starting frame processing loop...')
         while not stop_event.is_set():
             try:
@@ -105,7 +123,22 @@ def process_frames(
 
                 state_message = StateMessage(device_id, frame_count, race_id, player1_state, player2_state)
 
-                f.write(json.dumps(state_message, default=str))
+                csvrowdict = {
+                    'frame_number': state_message.frame_number,
+                    'player1_position': player1_state.position,
+                    'player1_item1': player1_state.item1,
+                    'player1_item2': player1_state.item2,
+                    'player1_coins': player1_state.coins,
+                    'player1_lap_num': player1_state.lap,
+                    'player1_race_laps': player1_state.race_laps,
+                    'player2_position': player2_state.position,
+                    'player2_item1': player2_state.item1,
+                    'player2_item2': player2_state.item2,
+                    'player2_coins': player2_state.coins,
+                    'player2_lap_num': player2_state.lap,
+                    'player2_race_laps': player2_state.race_laps
+                }
+                csvwriter.writerow(csvrowdict)
 
                 # Choose one of the following based on your chosen method:
                 match sink_type:
