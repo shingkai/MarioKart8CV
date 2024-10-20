@@ -14,7 +14,6 @@ from mk8cv.models.coin_classifier import CoinClassifier
 from mk8cv.sinks.sink import SinkType, publish_to_redis
 from mk8cv.data.state import Player, StateMessage, Stat, PlayerState, Item, StateEncoder
 
-from mk8cv.processing.ocr import extract_coins, extract_laps
 from mk8cv.processing.aois import CROP_COORDS
 
 import redis
@@ -39,13 +38,16 @@ def generateCrops(device_id: int, frame_count: int, frame: cv2.typing.MatLike, t
 
 
 def process_frames(
-        process_queue: Queue, stop_event: Event, display: bool,
+        process_queue: Queue,
+        stop_event: Event,
+        display: bool,
         training_save_dir: str,
         sink_type: SinkType = SinkType.REDIS,
         extract: list[Stat] = None
 ) -> None:
     logging.getLogger().setLevel(logging.INFO)
     logging.info("Starting frame processor...")
+    logging.info(f'extract: {extract}')
     if extract is None:
         extract = [stat for stat in Stat]
     match sink_type:
@@ -62,14 +64,20 @@ def process_frames(
         item_model: ItemClassifier = MobileNetV3ItemClassifier()
         item_model.load()
 
+    if Stat.RACE_LAPS in extract or Stat.LAP_NUM in extract:
+        from mk8cv.processing.ocr import extract_laps
+
+    if Stat.COINS in extract:
+        from mk8cv.processing.ocr import extract_coins
+
     if Stat.POSITION in extract:
         from mk8cv.models.position_classifier import CannyMaskPositionClassifier
         position_model: PositionClassifier = CannyMaskPositionClassifier()
         position_model.load()
 
     if Stat.COINS in extract:
-        from mk8cv.models.coin_classifier import CannyMaskCoinClassifier
-        coin_model: CoinClassifier = CannyMaskCoinClassifier()
+        from mk8cv.models.coin_classifier import SevenSegmentCoinClassifier
+        coin_model: CoinClassifier = SevenSegmentCoinClassifier()
         coin_model.load()
 
     with open('item_annotations.csv', 'w') as f:
@@ -111,7 +119,7 @@ def process_frames(
                     player1_state.coins = coin_model.extract_player_coins(frame, Player.P1)
                     player2_state.coins = coin_model.extract_player_coins(frame, Player.P2)
 
-                if Stat.LAP_NUM or Stat.RACE_LAPS in extract:
+                if Stat.LAP_NUM in extract or Stat.RACE_LAPS in extract:
                     player1_state.lap, player1_state.race_laps = extract_laps(frame, Player.P1)
                     player2_state.lap, player2_state.race_laps = extract_laps(frame, Player.P2)
 

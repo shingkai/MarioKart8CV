@@ -126,7 +126,8 @@ class CannyMaskPositionClassifier(PositionClassifier):
         self._masks = None
         self._threshold = threshold
 
-    def load(self, model_path: str = "./templates/position/edges/"):
+
+    def load(self, model_path: str = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../templates/position/edges/')):
         self._masks = self._load_templates(model_path, 'mask')
 
     def _predict(self, frame: MatLike):
