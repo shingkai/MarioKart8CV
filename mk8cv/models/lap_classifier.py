@@ -23,8 +23,8 @@ def load_templates(template_dir, masks=False):
             templates[number] = template
     return templates
 
-lap_num_templates = load_templates("templates/lap_num")
-lap_num_masks = load_templates("templates/lap_num", masks=True)
+# lap_num_templates = load_templates("templates/lap_num")
+# lap_num_masks = load_templates("templates/lap_num", masks=True)
 # race_laps_templates = load_templates("templates/race_laps")
 # race_laps_masks = load_templates("templates/race_laps", masks=True)
 
@@ -37,12 +37,27 @@ class LapClassifier(ABC):
         pass
 
     @abstractmethod
-    def _predict(self, frame: MatLike) -> str:
+    def _predict(self, frame: MatLike) -> tuple[int, int]:
         pass
 
-    def extract_laps(self, frame: MatLike, player: Player) -> str:
+    def extract_laps(self, frame: MatLike, player: Player) -> tuple[int, int]:
         """Extracts the player's items from the frame."""
         return self._predict(frame)
+
+class SevenSegmentLapClassifier(LapClassifier):
+    def __init__(self):
+        super().__init__()
+
+    def load(self, model_path: str = None):
+        pass
+
+    def _predict(self, frame: MatLike) -> tuple[int, int]:
+        return -1, -1
+
+        # result, visualization = self._recognize_seven_segment(frame)
+        # # cv2.imshow('Visualization', cv2.resize(visualization, (0,0), fx=2.0, fy=2.0))
+        # # cv2.waitKey(0)
+        # return result
 
 def match_template(image, template, mask, threshold=0.95):
     result = cv2.matchTemplate(image, template, cv2.TM_SQDIFF, mask=mask)

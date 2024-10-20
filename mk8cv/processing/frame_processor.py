@@ -5,6 +5,7 @@ import os
 import time
 from multiprocessing import Event, Queue
 from queue import Empty
+from typing import Optional
 
 import cv2
 import redis
@@ -25,7 +26,8 @@ def generateCrops(device_id: int, frame_count: int, frame: cv2.typing.MatLike, t
 
     for player, stat in CROP_COORDS.items():
         for name, coords in stat.items():
-            crop = frame[round(height * coords[2]) : round(height * coords[3]), round(width * coords[0]) : round(width * coords[1])]
+            crop = frame[round(height * coords[2]): round(height * coords[3]),
+                   round(width * coords[0]): round(width * coords[1])]
             out_path = os.path.join(training_save_dir, name, str(player))
             os.makedirs(out_path, exist_ok=True)
             cv2.imwrite(os.path.join(out_path, f'{frame_count:06}.png'), crop)
@@ -34,21 +36,21 @@ def generateCrops(device_id: int, frame_count: int, frame: cv2.typing.MatLike, t
     # os.makedirs(out_path, exist_ok=True)
     # cv2.imwrite(os.path.join(out_path, f'{frame_count:06}.png'), frame)
 
+
 def process_frame(
         device_id: int,
         frame_count: int,
         frame: cv2.typing.MatLike,
-        extract: list[Stat] = None,
+        extract: list[Stat | str] = None,
         coin_model: CoinClassifier = None,
         item_model: ItemClassifier = None,
         position_model: PositionClassifier = None,
         lap_model: LapClassifier = None,
 ) -> StateMessage:
-
     race_id = 0  # This will need to be extracted from our CV thingy
 
-    if frame_count % 6000 == 0:
-        race_id += 1
+    # if frame_count % 6000 == 0:
+    #     race_id += 1
 
     if extract is None or not extract:
         player1_state = PlayerState.generate_random_state()
@@ -75,25 +77,30 @@ def process_frame(
 
     return StateMessage(device_id, frame_count, race_id, player1_state, player2_state)
 
-def load_models(extract: list[Stat]) -> tuple[CoinClassifier, ItemClassifier, PositionClassifier, LapClassifier]:
+
+def load_models(extract: list[Stat]) -> tuple[
+    Optional[CoinClassifier], Optional[ItemClassifier], Optional[PositionClassifier], Optional[LapClassifier]]:
+    coin_model, item_model, position_model, lap_model = None, None, None, None
+
     if Stat.ITEM1 in extract or Stat.ITEM2 in extract:
         # TODO: read the model type from config or args
-        item_model: ItemClassifier = MobileNetV3ItemClassifier()
+        item_model = MobileNetV3ItemClassifier()
         item_model.load()
 
     if Stat.RACE_LAPS in extract or Stat.LAP_NUM in extract:
-        lap_model: LapClassifier = LapClassifier()
+        lap_model = LapClassifier()
         lap_model.load()
 
     if Stat.POSITION in extract:
-        position_model: PositionClassifier = CannyMaskPositionClassifier()
+        position_model = CannyMaskPositionClassifier()
         position_model.load()
 
     if Stat.COINS in extract:
-        coin_model: CoinClassifier = SevenSegmentCoinClassifier()
+        coin_model = SevenSegmentCoinClassifier()
         coin_model.load()
 
     return coin_model, item_model, position_model, lap_model
+
 
 def process_frames(
         process_queue: Queue,
@@ -142,7 +149,8 @@ def process_frames(
         while not stop_event.is_set():
             try:
                 device_id, frame_count, frame = process_queue.get(timeout=1)
-                state_message = process_frame(device_id, frame_count, frame, extract, coin_model, item_model, position_model, lap_model)
+                state_message = process_frame(device_id, frame_count, frame, extract, coin_model, item_model,
+                                              position_model, lap_model)
 
                 if write_csv:
                     player1_state = state_message.player1_state
