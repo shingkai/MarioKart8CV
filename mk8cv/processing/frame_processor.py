@@ -62,10 +62,6 @@ def process_frames(
         item_model.load()
 
     if Stat.POSITION in extract:
-        # from mk8cv.models.position_classifier import MobileNetV3PositionClassifier
-        # position_model: PositionClassifier = MobileNetV3PositionClassifier()
-        # from mk8cv.models.position_classifier import TemplatePositionClassifier
-        # position_model: PositionClassifier = TemplatePositionClassifier()
         from mk8cv.models.position_classifier import CannyMaskPositionClassifier
         position_model: PositionClassifier = CannyMaskPositionClassifier()
         position_model.load()

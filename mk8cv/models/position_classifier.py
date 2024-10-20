@@ -121,9 +121,10 @@ class TemplatePositionClassifier(PositionClassifier):
     
 
 class CannyMaskPositionClassifier(PositionClassifier):
-    def __init__(self):
+    def __init__(self, threshold = 10000):
         super().__init__()
         self._masks = None
+        self._threshold = threshold
 
     def load(self, model_path: str = "./templates/position/edges/"):
         self._masks = self._load_templates(model_path, 'mask')
@@ -143,7 +144,7 @@ class CannyMaskPositionClassifier(PositionClassifier):
                 min_error = error
                 best_mask = index
 
-        return best_mask
+        return best_mask if min_error < self._threshold else 0
 
     def _load_templates(self, template_dir: str, masks=False):
         templates = {}
