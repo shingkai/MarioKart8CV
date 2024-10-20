@@ -68,7 +68,6 @@ def process_frames(
         position_model.load()
 
     with open('item_annotations.json', 'w') as f:
-        f.write('[')
         logging.info('Starting frame processing loop...')
         while not stop_event.is_set():
             try:
@@ -104,7 +103,7 @@ def process_frames(
 
                 state_message = StateMessage(device_id, frame_count, race_id, player1_state, player2_state)
 
-                f.write(json.dumps(state_message, indent=2, default=str) + ',')
+                f.write(json.dumps(state_message, default=str))
 
                 # Choose one of the following based on your chosen method:
                 match sink_type:
@@ -139,5 +138,3 @@ def process_frames(
                 logging.info("Queue is empty. Waiting for frames...")
                 stop_event.set()
                 continue
-
-        f.write(']')
