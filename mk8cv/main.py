@@ -9,10 +9,10 @@ import time
 
 import redis
 
-from capture.capture import capture_and_process
-from data.state import Stat
-from processing.frame_processor import process_frames
-from sinks.sink import SinkType
+from mk8cv.capture.capture import capture_and_process
+from mk8cv.data.state import Stat
+from mk8cv.processing.frame_processor import process_frames
+from mk8cv.sinks.sink import SinkType
 
 
 def main(_args: argparse.Namespace) -> None:
