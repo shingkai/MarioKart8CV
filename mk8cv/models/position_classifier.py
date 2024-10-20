@@ -132,7 +132,6 @@ class CannyMaskPositionClassifier(PositionClassifier):
     def _predict(self, frame: MatLike):
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         boosted = cv2.convertScaleAbs(gray, alpha=1.5, beta=0)
-        # blurred = cv2.GaussianBlur(boosted, (5, 5), 1.5)
         canny = cv2.Canny(boosted, threshold1=50, threshold2=150)
 
         min_error = None

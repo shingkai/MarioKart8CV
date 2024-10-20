@@ -10,6 +10,7 @@ import time
 
 from mk8cv.models.position_classifier import PositionClassifier
 from mk8cv.models.item_classifier import ItemClassifier
+from mk8cv.models.coin_classifier import CoinClassifier
 from mk8cv.sinks.sink import SinkType, publish_to_redis
 from mk8cv.data.state import Player, StateMessage, Stat, PlayerState, Item, StateEncoder
 
@@ -66,6 +67,11 @@ def process_frames(
         position_model: PositionClassifier = CannyMaskPositionClassifier()
         position_model.load()
 
+    if Stat.COINS in extract:
+        from mk8cv.models.coin_classifier import CannyMaskCoinClassifier
+        coin_model: CoinClassifier = CannyMaskCoinClassifier()
+        coin_model.load()
+
     with open('item_annotations.csv', 'w') as f:
         fieldnames = [
             'frame_number',
@@ -102,8 +108,8 @@ def process_frames(
                     player2_state = PlayerState(-1, Item.NONE, Item.NONE, -1, -1, -1)
 
                 if Stat.COINS in extract:
-                    player1_state.coins = extract_coins(frame, Player.P1)
-                    player2_state.coins = extract_coins(frame, Player.P2)
+                    player1_state.coins = coin_model.extract_player_coins(frame, Player.P1)
+                    player2_state.coins = coin_model.extract_player_coins(frame, Player.P2)
 
                 if Stat.LAP_NUM or Stat.RACE_LAPS in extract:
                     player1_state.lap, player1_state.race_laps = extract_laps(frame, Player.P1)
