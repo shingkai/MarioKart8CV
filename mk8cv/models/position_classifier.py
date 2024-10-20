@@ -8,6 +8,7 @@ from torchvision import models, transforms
 import cv2
 from cv2.typing import MatLike
 import numpy as np
+import matplotlib.pyplot as plt
 
 from mk8cv.data.state import Player, Stat
 from mk8cv.processing.aois import CROP_COORDS
@@ -124,20 +125,20 @@ class CannyMaskPositionClassifier(PositionClassifier):
         super().__init__()
         self._masks = None
 
-    def load(self, model_path: str = "./templates/position"):
+    def load(self, model_path: str = "./templates/position/edges/"):
         self._masks = self._load_templates(model_path, 'mask')
 
     def _predict(self, frame: MatLike):
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         boosted = cv2.convertScaleAbs(gray, alpha=1.5, beta=0)
-        blurred = cv2.GaussianBlur(boosted, (5, 5), 1.5)
-        canny = cv2.Canny(blurred, threshold1=50, threshold2=150)
+        # blurred = cv2.GaussianBlur(boosted, (5, 5), 1.5)
+        canny = cv2.Canny(boosted, threshold1=50, threshold2=150)
 
         min_error = None
         best_mask = None
-
         for index, mask in self._masks.items():
             error = self._score_mask(canny, mask)
+
             if min_error == None or min_error > error:
                 min_error = error
                 best_mask = index
@@ -159,6 +160,8 @@ class CannyMaskPositionClassifier(PositionClassifier):
                 templates[number] = template
         return templates
     
-    def _score_mask(self, image, mask, threshold=0):
-        masked_canny = cv2.bitwise_and(image, mask)
+    def _score_mask(self, image, mask):
+        height, width = image.shape[:2]
+        masked_canny = cv2.bitwise_and(image, cv2.resize(mask, (width, height)))
+        
         return np.sum(masked_canny)
