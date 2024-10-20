@@ -11,6 +11,7 @@ from typing import Optional, Tuple, Union
 from state import Player, StateMessage, publish_to_redis, Stat, PlayerState, Item
 from ocr import CROP_COORDS, extract_coins, extract_position, extract_laps
 from item_classifier import ItemClassifier
+from position_classifier import PositionClassifier
 
 import redis
 
@@ -116,9 +117,15 @@ def process_frames(
     start_time = time.time()
     frames_processed = 0
     if Stat.ITEM1 in extract or Stat.ITEM2 in extract:
+        # TODO: read the model type from config or args
         from item_classifier import MobileNetV3ItemClassifier
         item_model: ItemClassifier = MobileNetV3ItemClassifier()
         item_model.load()
+
+    if Stat.POSITION in extract:
+        from position_classifier import MobileNetV3PositionClassifier
+        position_model: PositionClassifier = MobileNetV3PositionClassifier()
+        position_model.load()
 
     while not stop_event.is_set():
         try:
@@ -149,8 +156,8 @@ def process_frames(
                 player2_state.item1, player2_state.item2 = item_model.extract_player_items(frame, Player.P2)
 
             if Stat.POSITION in extract:
-                player1_state.position = extract_position(frame, Player.P1)
-                player2_state.position = extract_position(frame, Player.P2)
+                player1_state.position = position_model.extract_player_position(frame, Player.P1)
+                player2_state.position = position_model.extract_player_position(frame, Player.P2)
 
             state_message = StateMessage(device_id, frame_count, race_id, player1_state, player2_state)
 

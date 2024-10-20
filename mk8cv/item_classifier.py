@@ -8,46 +8,23 @@ from cv2.typing import MatLike
 from state import Player, Stat, PlayerState, Item
 from aois import CROP_COORDS
 
-# ordered list of item classes that the model was trained on
-class_names = [
-    Item.BANANA,
-    Item.TRIPLE_BANANA,
-    Item.GREEN_SHELL,
-    Item.TRIPLE_GREEN_SHELL,
-    Item.RED_SHELL,
-    Item.BLUE_SHELL,
-    Item.MUSHROOM,
-    Item.TRIPLE_MUSHROOM,
-    Item.GOLDEN_MUSHROOM,
-    Item.BULLET_BILL,
-    Item.BLOOPER,
-    Item.STAR,
-    Item.FIRE_FLOWER,
-    Item.PIRANHA_PLANT,
-    Item.SUPER_HORN,
-    Item.COIN,
-    Item.BOO,
-    Item.NONE,
-]
-
+# 
 classes = ['01', '02', '03', '04', '05', '07', '09', '10', '11', '12', '13', '15', '16', '18', '19', '21', '23', '24']
 
-# Use GPU if available (cuda or apple silicon)
-device = torch.device("cuda:0" if torch.cuda.is_available() else torch.device("mps") if torch.backends.mps.is_available() else  torch.device("cpu"))
 
 class ItemClassifier(ABC):
     def __init__(self):
         self._model = None
-        self._device = device
+        # Use GPU if available (cuda or apple silicon)
+        self._device = torch.device("cuda:0" if torch.cuda.is_available() else torch.device("mps") if torch.backends.mps.is_available() else  torch.device("cpu"))
         self._classes = classes
-        self._class_names = class_names
 
     @abstractmethod
-    def load(self, model_path: str):
+    def load(self, model_path: str) -> None:
         pass
 
     @abstractmethod
-    def _predict(self, frame: MatLike):
+    def _predict(self, frame: MatLike) -> str:
         pass
 
     def extract_player_items(self, frame: MatLike, player: Player) -> tuple[Item, Item]:
