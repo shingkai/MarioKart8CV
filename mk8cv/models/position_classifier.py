@@ -7,6 +7,7 @@ import torch.nn as nn
 from torchvision import models, transforms
 import cv2
 from cv2.typing import MatLike
+import numpy as np
 
 from mk8cv.data.state import Player, Stat
 from mk8cv.processing.aois import CROP_COORDS
@@ -116,3 +117,48 @@ class TemplatePositionClassifier(PositionClassifier):
         result = cv2.matchTemplate(image, template, cv2.TM_SQDIFF, mask=mask)
         min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
         return min_val
+    
+
+class CannyMaskPositionClassifier(PositionClassifier):
+    def __init__(self):
+        super().__init__()
+        self._masks = None
+
+    def load(self, model_path: str = "./templates/position"):
+        self._masks = self._load_templates(model_path, 'mask')
+
+    def _predict(self, frame: MatLike):
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        boosted = cv2.convertScaleAbs(gray, alpha=1.5, beta=0)
+        blurred = cv2.GaussianBlur(boosted, (5, 5), 1.5)
+        canny = cv2.Canny(blurred, threshold1=50, threshold2=150)
+
+        min_error = None
+        best_mask = None
+
+        for index, mask in self._masks.items():
+            error = self._score_mask(canny, mask)
+            if min_error == None or min_error > error:
+                min_error = error
+                best_mask = index
+
+        return best_mask
+
+    def _load_templates(self, template_dir: str, masks=False):
+        templates = {}
+        for filename in os.listdir(template_dir):
+            if filename.endswith('.png'):
+                if masks and not filename.endswith('_mask.png'):
+                    continue
+                elif not masks and (filename.endswith('_mask.png') or 'mask' in filename):
+                    continue
+                number = filename.split('.')[0]
+                if masks:
+                    number = number.split('_')[0]
+                template = cv2.imread(os.path.join(template_dir, filename), 0)
+                templates[number] = template
+        return templates
+    
+    def _score_mask(self, image, mask, threshold=0):
+        masked_canny = cv2.bitwise_and(image, mask)
+        return np.sum(masked_canny)
