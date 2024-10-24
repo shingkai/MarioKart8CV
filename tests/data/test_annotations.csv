@@ -105,7 +105,7 @@ frame_number,player1_position,player1_item1,player1_item2,player1_coins,player1_
 104,1,triple banana,green shell,5,2,3,5,none,none,10,2,3
 105,1,triple banana,green shell,5,2,3,5,none,none,10,2,3
 106,1,triple banana,green shell,5,2,3,5,none,none,10,2,3
-107,1,triple banana,green shell,6,2,3,5,none,none,10,2,3
+107,1,triple banana,green shell,5,2,3,5,none,none,10,2,3
 108,1,triple banana,green shell,6,2,3,5,none,none,10,2,3
 109,1,triple banana,green shell,6,2,3,5,none,none,10,2,3
 110,1,triple banana,green shell,6,2,3,5,none,none,10,2,3
@@ -167,8 +167,8 @@ frame_number,player1_position,player1_item1,player1_item2,player1_coins,player1_
 166,1,triple banana,green shell,7,2,3,6,piranha plant,none,10,2,3
 167,1,triple banana,green shell,7,2,3,6,none,none,10,2,3
 168,1,triple banana,green shell,7,2,3,6,none,red shell,10,2,3
-169,7,triple banana,green shell,0,2,3,6,none,none,10,2,3
-170,11,triple banana,green shell,7,2,3,6,none,none,10,2,3
+169,1,triple banana,green shell,7,2,3,6,none,none,10,2,3
+170,1,triple banana,green shell,7,2,3,6,none,none,10,2,3
 171,1,triple banana,green shell,7,2,3,6,none,triple mushroom,10,2,3
 172,1,triple banana,green shell,7,2,3,6,blue shell,boo,10,2,3
 173,1,triple banana,green shell,7,2,3,6,none,fire flower,10,2,3
@@ -253,7 +253,7 @@ frame_number,player1_position,player1_item1,player1_item2,player1_coins,player1_
 252,1,triple banana,green shell,10,2,3,8,none,none,8,2,3
 253,1,triple banana,green shell,10,2,3,8,none,none,8,2,3
 254,1,triple banana,green shell,10,2,3,8,none,none,8,2,3
-255,1,triple banana,green shell,0,2,3,8,none,none,8,2,3
+255,1,triple banana,green shell,10,2,3,8,none,none,8,2,3
 256,1,triple banana,green shell,10,2,3,8,triple banana,none,8,2,3
 257,1,triple banana,green shell,10,2,3,8,banana,none,8,2,3
 258,1,triple banana,green shell,10,2,3,8,none,none,8,2,3

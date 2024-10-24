@@ -44,17 +44,17 @@ class SevenSegmentCoinClassifier(CoinClassifier):
         # cv2.waitKey(0)
         return result
 
-    def _preprocess_image(self, image):
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        image = cv2.resize(gray, (65 , 48))
-        blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-        # plt.figure()
-        # plt.imshow(blurred)
-        thresh = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
-        # plt.figure()
-        # plt.imshow(thresh)
-        # boosted = cv2.convertScaleAbs(image, alpha=2, beta=-100)
-        return thresh
+    # def _preprocess_image(self, image):
+    #     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    #     image = cv2.resize(gray, (65 , 48))
+    #     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+    #     # plt.figure()
+    #     # plt.imshow(blurred)
+    #     thresh = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
+    #     # plt.figure()
+    #     # plt.imshow(thresh)
+    #     # boosted = cv2.convertScaleAbs(image, alpha=2, beta=-100)
+    #     return thresh
 
     def _preprocess_image(self, image):
         # plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
@@ -158,8 +158,8 @@ class SevenSegmentCoinClassifier(CoinClassifier):
         debug_output = cv2.resize(cv2.hconcat([preprocessed_bgr, visualization]), (0, 0), fx=4.0, fy=4.0)
 
         # Display the concatenated image
-        cv2.imshow('Preprocessed | Visualization', debug_output)
-        cv2.waitKey(0)
+        # cv2.imshow('Preprocessed | Visualization', debug_output)
+        # cv2.waitKey(0)
 
         digit = self._decode_segments(segments)
         recognized_number = digit

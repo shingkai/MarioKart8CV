@@ -59,7 +59,7 @@ class TestIntegration:
             if not ret:
                 stopped = True
             else:
-                output = process_frame(0, count, frame, [Stat.COINS], coin_model, item_model, position_model, lap_model)
+                output = process_frame(0, count, frame, list(Stat), coin_model, item_model, position_model, lap_model)
                 if output != expected[count - 1]:
                     wrong_stats = {
                         'player1_position': output.player1_state.position != expected[count - 1].player1_state.position,
@@ -75,13 +75,13 @@ class TestIntegration:
                         'player2_lap_num': output.player2_state.lap != expected[count - 1].player2_state.lap,
                         'player2_race_laps': output.player2_state.race_laps != expected[count - 1].player2_state.race_laps
                     }
-                    wrong_frames.append((wrong_stats, count, output, expected[count - 1]))
+                    wrong_frames.append((wrong_stats.copy(), count, output, expected[count - 1]))
                 count += 1
 
         print(f"\nProcessed {count} frames")
         print(f"Wrong frames: {len(wrong_frames)} ({len(wrong_frames) / count:.2%})")
         for stat in ['player1_position', 'player1_item1', 'player1_item2', 'player1_coins', 'player1_lap_num', 'player1_race_laps', 'player2_position', 'player2_item1', 'player2_item2', 'player2_coins', 'player2_lap_num', 'player2_race_laps']:
-            print(f"Incorrect {stat}: {sum([w[0][stat]for w in wrong_frames])} ({sum([w[0][stat] for w in wrong_frames]) / len(wrong_frames):.2%})")
+            print(f"Incorrect {stat}: {sum([w[0][stat] for w in wrong_frames])} ({sum([w[0][stat] for w in wrong_frames]) / count:.2%})")
             print(f"Incorrect {stat} frames sample: {[w[1] for w in wrong_frames if w[0][stat]][:5]}")
         assert len(wrong_frames) == 0, f"{len(wrong_frames)} frames had incorrect StateMessages: {wrong_frames[:5]}"
 
