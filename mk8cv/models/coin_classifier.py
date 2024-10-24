@@ -102,15 +102,18 @@ class SevenSegmentCoinClassifier(CoinClassifier):
         ]
 
         segments = []  # List to store segments for both digits
-        visualization = original_image.copy()
+        # visualization = original_image.copy()
+        visualization = cv2.cvtColor(preprocessed_image, cv2.COLOR_GRAY2BGR)
 
+        # 120 / 255 -> set the threshold to at least 5/9 of the kernel (assuming 3x3 kernel)
+        threshold = 120
 
         for i, (x, y) in enumerate(segment_points):
             # print(f"{preprocessed_image[int(h * y), int(w * x)]}")
             # segment_value = 1 if preprocessed_image[int(h * y), int(w * x)] > 250 else 0
             segment_area = preprocessed_image[int((h * y) - 1):int((h * y) + 1),
                            int((w * x) - 1):int((w * x) + 1)]
-            segment_value = 1 if np.mean(segment_area) < 5 else 0
+            segment_value = 1 if np.mean(segment_area) < threshold else 0
             cv2.circle(visualization, (int(x * w), int(y * h)), 1, (0, 255, 0) if segment_value else (255, 0, 0), thickness=-1)
             # print(f"{preprocessed_image[int(h * y), int(w * x)]}")
 
@@ -154,8 +157,8 @@ class SevenSegmentCoinClassifier(CoinClassifier):
         debug_output = cv2.resize(cv2.hconcat([preprocessed_bgr, visualization]), (0, 0), fx=4.0, fy=4.0)
 
         # Display the concatenated image
-        # cv2.imshow('Preprocessed | Visualization', debug_output)
-        # cv2.waitKey(0)
+        cv2.imshow('Preprocessed | Visualization', debug_output)
+        cv2.waitKey(0)
 
         digit = self._decode_segments(segments)
         recognized_number = digit
