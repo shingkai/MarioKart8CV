@@ -122,8 +122,29 @@ class SevenSegmentCoinClassifier(CoinClassifier):
             # Visualization
             color = (0, 255, 0) if segment_value else (0, 0, 255)
 
+
+        orange_segments = []
+        for i, (x, y) in enumerate(list(segment_points)):
+            image = cv2.resize(original_image, (65, 48))
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+            lower_orange = np.array([5, 150, 150])
+            upper_orange = np.array([25, 255, 255])
+
+            segment_area = image[int((h * y) - 1):int((h * y) + 1),
+                            int((w * x) - 1):int((w * x) + 1)]
+
+            # check if the segment is orange
+            segment_value = 1 if np.mean(cv2.inRange(segment_area, lower_orange, upper_orange)) > 0.5 else 0
+            if segment_value:
+                cv2.circle(visualization, (int(x * w), int(y * h)), 1, (0, 165, 255), thickness=-1)
+            orange_segments.append(segment_value)
+
+        is_ten = False
+        if sum(orange_segments) >= 4:
+            is_ten = True
+
         # return segments, visualization
-        return segments, preprocessed_image, visualization
+        return segments, is_ten, preprocessed_image, visualization
 
     def _decode_segments(self, segments):
         segment_patterns = {
@@ -141,14 +162,11 @@ class SevenSegmentCoinClassifier(CoinClassifier):
         }
         result = segment_patterns.get(tuple(segments), -1)
         # print(f'result: {result}')
-        if result == -1 and segments[:2] == [0, 1]:
-            return 10
-        else:
-            return result
+        return result
 
     def _recognize_seven_segment(self, image):
         preprocessed = self._preprocess_image(image)
-        segments, preprocessed, visualization = self._extract_segments(preprocessed, image)
+        segments, is_ten, preprocessed, visualization = self._extract_segments(preprocessed, image)
 
         # Convert preprocessed (grayscale) to BGR
         preprocessed_bgr = cv2.cvtColor(preprocessed, cv2.COLOR_GRAY2BGR)
@@ -157,10 +175,10 @@ class SevenSegmentCoinClassifier(CoinClassifier):
         debug_output = cv2.resize(cv2.hconcat([preprocessed_bgr, visualization]), (0, 0), fx=4.0, fy=4.0)
 
         # Display the concatenated image
-        cv2.imshow('Preprocessed | Visualization', debug_output)
-        cv2.waitKey(0)
+        # cv2.imshow('Preprocessed | Visualization', debug_output)
+        # cv2.waitKey(0)
 
-        digit = self._decode_segments(segments)
+        digit = 10 if is_ten else self._decode_segments(segments)
         recognized_number = digit
 
         return recognized_number, visualization
