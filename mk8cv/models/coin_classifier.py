@@ -1,3 +1,5 @@
+import functools
+import operator
 import os.path
 from abc import ABC, abstractmethod
 import cv2
@@ -160,9 +162,11 @@ class SevenSegmentCoinClassifier(CoinClassifier):
             (1, 0, 1, 1, 1, 1, 1, 1, 1): 8,
             (1, 0, 1, 1, 1, 1, 0, 1, 1): 9,
         }
-        result = segment_patterns.get(tuple(segments), -1)
-        # print(f'result: {result}')
-        return result
+        # result = segment_patterns.get(tuple(segments), -1)
+
+        dists = [(np.abs(np.array(pattern) - np.array(segments)).sum(), digit) for pattern, digit in segment_patterns.items()]
+
+        return min(dists, key=operator.itemgetter(0))[1]
 
     def _recognize_seven_segment(self, image):
         preprocessed = self._preprocess_image(image)

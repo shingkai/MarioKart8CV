@@ -75,7 +75,8 @@ class TestIntegration:
                         'player2_lap_num': output.player2_state.lap != expected[count - 1].player2_state.lap,
                         'player2_race_laps': output.player2_state.race_laps != expected[count - 1].player2_state.race_laps
                     }
-                    wrong_frames.append((wrong_stats.copy(), count, output, expected[count - 1]))
+                    if sum(wrong_stats.values()) > 0:
+                        wrong_frames.append((wrong_stats.copy(), count, output, expected[count - 1]))
                 count += 1
 
         print(f"\nProcessed {count} frames")

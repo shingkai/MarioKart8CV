@@ -72,8 +72,8 @@ frame_number,player1_position,player1_item1,player1_item2,player1_coins,player1_
 71,1,triple banana,green shell,4,1,3,5,none,none,9,1,3
 72,1,triple banana,green shell,4,1,3,5,none,none,9,1,3
 73,1,triple banana,green shell,4,1,3,4,none,none,9,1,3
-74,1,triple banana,green shell,4,1,3,4,none,none,8,1,3
-75,1,triple banana,green shell,4,1,3,4,none,none,8,1,3
+74,1,triple banana,green shell,4,1,3,4,none,none,9,1,3
+75,1,triple banana,green shell,4,1,3,4,none,none,9,1,3
 76,1,triple banana,green shell,4,-1,3,4,none,none,10,1,3
 77,1,triple banana,green shell,4,2,3,4,none,none,10,1,3
 78,1,triple banana,green shell,4,-1,3,4,none,none,10,1,3
@@ -370,15 +370,15 @@ frame_number,player1_position,player1_item1,player1_item2,player1_coins,player1_
 369,11,none,none,10,3,3,9,triple mushroom,none,8,3,3
 370,1,none,none,10,3,3,9,triple mushroom,none,8,3,3
 371,1,none,none,10,3,3,9,triple mushroom,none,8,3,3
-372,1,none,none,10,3,3,9,triple mushroom,none,8,3,3
-373,1,none,none,10,3,3,9,triple mushroom,none,8,3,3
-374,1,none,none,10,3,3,9,triple mushroom,none,8,3,3
-375,1,none,none,10,3,3,9,triple mushroom,none,8,3,3
-376,1,none,none,10,3,3,9,triple mushroom,none,8,3,3
-377,1,none,none,10,3,3,9,triple mushroom,none,8,3,3
-378,1,none,none,10,3,3,9,triple mushroom,none,8,3,3
-379,1,none,none,10,3,3,9,triple mushroom,none,8,3,3
-380,1,none,none,10,3,3,9,triple mushroom,none,8,3,3
+372,1,none,none,10,3,3,9,triple mushroom,none,9,3,3
+373,1,none,none,10,3,3,9,triple mushroom,none,9,3,3
+374,1,none,none,10,3,3,9,triple mushroom,none,9,3,3
+375,1,none,none,10,3,3,9,triple mushroom,none,9,3,3
+376,1,none,none,10,3,3,9,triple mushroom,none,9,3,3
+377,1,none,none,10,3,3,9,triple mushroom,none,9,3,3
+378,1,none,none,10,3,3,9,triple mushroom,none,9,3,3
+379,1,none,none,10,3,3,9,triple mushroom,none,9,3,3
+380,1,none,none,10,3,3,9,triple mushroom,none,9,3,3
 381,1,none,none,10,3,3,9,triple mushroom,none,9,3,3
 382,1,none,none,10,3,3,9,triple mushroom,none,9,3,3
 383,1,none,none,10,3,3,9,triple mushroom,none,9,3,3
