@@ -79,6 +79,8 @@ class SevenSegmentLapClassifier(LapClassifier):
         # Define relative positions for each segment's check point
         # Format: (x1, y1, x2, y2) where 1 is for the first digit and 2 is for the second digit
         segment_points = [
+            (0.47, 0.4), # one-top
+            (0.43, 0.65), # one-bottom
             (0.5, 0.25),  # Top
             (0.3, 0.4),  # Top-left
             (0.7, 0.4),  # Top-right
@@ -111,17 +113,17 @@ class SevenSegmentLapClassifier(LapClassifier):
 
     def _decode_segments(self, segments):
         segment_patterns = {
-            #t  tl tr m  bl br b
-            (1, 1, 1, 0, 1, 1, 1): 0,
-            (0, 0, 1, 0, 0, 1, 0): 1,
-            (1, 0, 1, 1, 1, 0, 1): 2,
-            (1, 0, 1, 1, 0, 1, 1): 3,
-            (0, 1, 1, 1, 0, 1, 0): 4,
-            (1, 1, 0, 1, 0, 1, 1): 5,
-            (1, 1, 0, 1, 1, 1, 1): 6,
-            (1, 0, 1, 0, 0, 1, 0): 7,
-            (1, 1, 1, 1, 1, 1, 1): 8,
-            (1, 1, 1, 1, 0, 1, 1): 9,
+            #ot ob t  tl tr m  bl br b
+            (0, 0, 1, 1, 1, 0, 1, 1, 1): 0,
+            (1, 1, 0, 0, 0, 0, 0, 0, 0): 1,
+            (0, 0, 1, 0, 1, 1, 1, 0, 1): 2,
+            (0, 0, 1, 0, 1, 1, 0, 1, 1): 3,
+            (0, 0, 0, 1, 1, 1, 0, 1, 0): 4,
+            (0, 0, 1, 1, 0, 1, 0, 1, 1): 5,
+            (0, 0, 1, 1, 0, 1, 1, 1, 1): 6,
+            (0, 0, 1, 0, 1, 0, 0, 1, 0): 7,
+            (0, 0, 1, 1, 1, 1, 1, 1, 1): 8,
+            (0, 0, 1, 1, 1, 1, 0, 1, 1): 9,
         }
         result = segment_patterns.get(tuple(segments), -1)
         # print(f'result: {result}')
