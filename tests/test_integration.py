@@ -14,7 +14,7 @@ from mk8cv.processing.frame_processor import process_frame
 
 class TestIntegration:
 
-    @pytest.mark.parametrize('video_file', ['./data/test.mp4'])
+    @pytest.mark.parametrize('video_file', ['./tests/data/test.mp4'])
     def test_extractions(self, video_capture, video_file):
         video_capture.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
         video_capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
@@ -30,7 +30,7 @@ class TestIntegration:
         lap_model.load()
 
         expected = []
-        with open('./data/test_annotations.csv', 'r') as f:
+        with open('./tests/data/test_annotations.csv', 'r') as f:
             reader = csv.DictReader(f)
             for row in reader:
                 as_message = StateMessage(0, int(row['frame_number']), 0, PlayerState(
