@@ -5,7 +5,7 @@ from cv2.typing import MatLike
 import numpy as np
 
 
-from mk8cv.data.state import Player, Stat, Item
+from mk8cv.data.state import Player, Stat
 from mk8cv.processing.aois import CROP_COORDS
 
 
@@ -87,10 +87,6 @@ class SevenSegmentCoinClassifier(CoinClassifier):
         # cv2.imshow('preprocessed_image', preprocessed_image)
         # cv2.waitKey(0)
 
-        first_digit_points = [
-            (0.125, 0.3),  # zero point
-            (0.45, 0.3),  # one point
-        ]
         # Define relative positions for each segment's check point
         # Format: (x1, y1, x2, y2) where 1 is for the first digit and 2 is for the second digit
         segment_points = [
@@ -128,7 +124,7 @@ class SevenSegmentCoinClassifier(CoinClassifier):
 
     def _decode_segments(self, segments):
         segment_patterns = {
-            #    0  1  t  tl tr m  bl br b
+            #0  1  t  tl tr m  bl br b
             (1, 0, 1, 1, 1, 0, 1, 1, 1): 0,
             (1, 0, 0, 0, 1, 0, 0, 1, 0): 1,
             (1, 0, 1, 0, 1, 1, 1, 0, 1): 2,
