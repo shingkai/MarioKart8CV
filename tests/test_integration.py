@@ -14,7 +14,7 @@ from mk8cv.processing.frame_processor import process_frame
 
 class TestIntegration:
 
-    @pytest.mark.parametrize('video_file', ['../test.mp4'])
+    @pytest.mark.parametrize('video_file', ['./data/test.mp4'])
     def test_extractions(self, video_capture, video_file):
         video_capture.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
         video_capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
