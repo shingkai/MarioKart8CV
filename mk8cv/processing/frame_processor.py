@@ -13,7 +13,7 @@ import redis
 from mk8cv.data.state import Player, StateMessage, Stat, PlayerState, Item
 from mk8cv.models.coin_classifier import CoinClassifier, SevenSegmentCoinClassifier
 from mk8cv.models.item_classifier import ItemClassifier, MobileNetV3ItemClassifier
-from mk8cv.models.lap_classifier import LapClassifier
+from mk8cv.models.lap_classifier import LapClassifier, SevenSegmentLapClassifier
 from mk8cv.models.position_classifier import PositionClassifier, CannyMaskPositionClassifier
 from mk8cv.processing.aois import CROP_COORDS
 from mk8cv.sinks.sink import SinkType, publish_to_redis
@@ -88,7 +88,7 @@ def load_models(extract: list[Stat]) -> tuple[
         item_model.load()
 
     if Stat.RACE_LAPS in extract or Stat.LAP_NUM in extract:
-        lap_model = LapClassifier()
+        lap_model = SevenSegmentLapClassifier()
         lap_model.load()
 
     if Stat.POSITION in extract:

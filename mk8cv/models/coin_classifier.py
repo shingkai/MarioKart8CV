@@ -47,17 +47,45 @@ class SevenSegmentCoinClassifier(CoinClassifier):
     def _preprocess_image(self, image):
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         image = cv2.resize(gray, (65 , 48))
-        # blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+        blurred = cv2.GaussianBlur(gray, (5, 5), 0)
         # plt.figure()
         # plt.imshow(blurred)
-        # thresh = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
+        thresh = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
         # plt.figure()
         # plt.imshow(thresh)
-        boosted = cv2.convertScaleAbs(image, alpha=2, beta=-100)
-        return boosted
+        # boosted = cv2.convertScaleAbs(image, alpha=2, beta=-100)
+        return thresh
+
+    def _preprocess_image(self, image):
+        # plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+        # plt.title('Original Preprocess')
+        image = cv2.resize(image, (65, 48))
+
+        blurred = cv2.GaussianBlur(image, (5, 5), 0)
+        # plt.imshow(blurred)
+        # plt.title("blurred")
+
+        # boosted = cv2.convertScaleAbs(blurred, alpha=1.5, beta=-100)
+        # plt.imshow(boosted)
+        # plt.title("boosted")
+
+        gray = cv2.cvtColor(blurred, cv2.COLOR_BGR2GRAY)
+        # plt.figure()
+        # plt.imshow(cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR))
+        # plt.title('gray')
+
+        thresh = cv2.threshold(gray, 175, 255, cv2.THRESH_BINARY_INV)[1]
+        # plt.figure()
+        # plt.imshow(cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR))
+        # plt.title("thresh")
+
+        return thresh
+
 
     def _extract_segments(self, preprocessed_image, original_image):
         h, w = preprocessed_image.shape
+        # cv2.imshow('preprocessed_image', preprocessed_image)
+        # cv2.waitKey(0)
 
         first_digit_points = [
             (0.125, 0.3),  # zero point
@@ -66,25 +94,28 @@ class SevenSegmentCoinClassifier(CoinClassifier):
         # Define relative positions for each segment's check point
         # Format: (x1, y1, x2, y2) where 1 is for the first digit and 2 is for the second digit
         segment_points = [
-            (0.18, 0.4),  # zero point
+            (0.185, 0.37),  # zero point
             (0.3, 0.4),  # one point
             (0.7, 0.2),  # Top
             (0.575, 0.35),  # Top-left
             (0.825, 0.35),  # Top-right
             (0.7, 0.5),  # Middle
             (0.55, 0.67),  # Bottom-left
-            (0.775, 0.67),  # Bottom-right
+            (0.785, 0.67),  # Bottom-right
             (0.675, 0.775)  # Bottom
         ]
 
         segments = []  # List to store segments for both digits
         visualization = original_image.copy()
 
+
         for i, (x, y) in enumerate(segment_points):
-            point1 = (int(x * w), int(y * h))
             # print(f"{preprocessed_image[int(h * y), int(w * x)]}")
-            segment_value = 1 if preprocessed_image[int(h * y), int(w * x)] > 250 else 0
-            cv2.circle(preprocessed_image, (int(x * w), int(y * h)), 1, (0, 0, 0), thickness=-1)
+            # segment_value = 1 if preprocessed_image[int(h * y), int(w * x)] > 250 else 0
+            segment_area = preprocessed_image[int((h * y) - 1):int((h * y) + 1),
+                           int((w * x) - 1):int((w * x) + 1)]
+            segment_value = 1 if np.mean(segment_area) < 5 else 0
+            cv2.circle(visualization, (int(x * w), int(y * h)), 1, (0, 255, 0) if segment_value else (255, 0, 0), thickness=-1)
             # print(f"{preprocessed_image[int(h * y), int(w * x)]}")
 
             segments.append(segment_value)
@@ -93,7 +124,7 @@ class SevenSegmentCoinClassifier(CoinClassifier):
             color = (0, 255, 0) if segment_value else (0, 0, 255)
 
         # return segments, visualization
-        return segments, preprocessed_image
+        return segments, preprocessed_image, visualization
 
     def _decode_segments(self, segments):
         segment_patterns = {
@@ -118,10 +149,20 @@ class SevenSegmentCoinClassifier(CoinClassifier):
 
     def _recognize_seven_segment(self, image):
         preprocessed = self._preprocess_image(image)
-        segments, visualization = self._extract_segments(preprocessed, image)
-        # print(segments)
+        segments, preprocessed, visualization = self._extract_segments(preprocessed, image)
+
+        # Convert preprocessed (grayscale) to BGR
+        preprocessed_bgr = cv2.cvtColor(preprocessed, cv2.COLOR_GRAY2BGR)
+
+        # Concatenate images horizontally
+        debug_output = cv2.resize(cv2.hconcat([preprocessed_bgr, visualization]), (0, 0), fx=4.0, fy=4.0)
+
+        # Display the concatenated image
+        cv2.imshow('Preprocessed | Visualization', debug_output)
+        cv2.waitKey(0)
+
         digit = self._decode_segments(segments)
-        recognized_number = str(digit)
+        recognized_number = digit
 
         return recognized_number, visualization
 

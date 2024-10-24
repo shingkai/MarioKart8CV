@@ -43,6 +43,13 @@ class Item(int, Enum):
     BOO = 23
     NONE = 24
 
+    @staticmethod
+    def get(name: str, default=None):
+        try:
+            return Item[name.upper().replace(' ', '_')]
+        except KeyError:
+            return default
+
     def __str__(self):
         return self.name.lower().replace('_', ' ')
 
