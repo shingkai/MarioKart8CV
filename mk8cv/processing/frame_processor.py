@@ -118,10 +118,10 @@ def process_frames(
         extract = [stat for stat in Stat]
     match sink_type:
         case SinkType.REDIS:
+            logging.info('Sink type: Redis')
             sink = redis.Redis()
         case _:
             sink = None
-    logging.getLogger().setLevel(logging.INFO)
     start_time = time.time()
     frames_processed = 0
 
@@ -152,9 +152,10 @@ def process_frames(
                 state_message = process_frame(device_id, frame_count, frame, extract, coin_model, item_model,
                                               position_model, lap_model)
 
+                player1_state = state_message.player1_state
+                player2_state = state_message.player2_state
+
                 if write_csv:
-                    player1_state = state_message.player1_state
-                    player2_state = state_message.player2_state
                     csvrowdict = {
                         'frame_number': state_message.frame_number,
                         'player1_position': player1_state.position,

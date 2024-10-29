@@ -4,7 +4,7 @@ import redis
 from typing import Dict, Any, Optional, TypeVar, Generic
 from collections import Counter
 
-from state import Item, Stat, Player
+from mk8cv.data.state import Item, Stat, Player
 
 T = TypeVar('T')
 

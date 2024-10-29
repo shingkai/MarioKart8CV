@@ -33,18 +33,12 @@ def main(_args: argparse.Namespace) -> None:
         process.start()
         capture_processes.append(process)
 
-    match _args.sink:
-        case SinkType.REDIS:
-            sink = redis.Redis()
-        case _:
-            sink = None
-
     # Create and start frame processing processes
     processing_processes = []
     for _ in range(_args.threads):
         process = Process(target=process_frames,
                           args=(
-                          process_queue, stop_process_event, _args.display, _args.training_save_dir, _args.sink, _args.extract))
+                          process_queue, stop_process_event, _args.display, _args.training_save_dir, _args.write_csv, _args.sink, _args.extract))
         process.start()
         processing_processes.append(process)
 
@@ -110,6 +104,7 @@ if __name__ == "__main__":
     parser.add_argument("--training-save-dir", type=str,
                         help="Directory to save training images (optional)")
     parser.add_argument("--extract", type=parse_enum(Stat), nargs='*', choices=list(Stat), default=list(Stat), help="Skip extracting player state and items")
+    parser.add_argument("--write-csv", action='store_true', help="enable/disable writing extracted stats to csv")
 
     logging.getLogger().setLevel(logging.INFO)
     args = parser.parse_args()
@@ -129,6 +124,7 @@ if __name__ == "__main__":
     logging.info(f"Display frames: {args.display}")
     logging.info(f"Sink: {args.sink}")
     logging.info(f"Extracting: {args.extract}")
+    logging.info(f"CSV writing: {args.write_csv}")
     logging.info(
         f"Save training images to directory: {args.training_save_dir if args.training_save_dir else 'Not provided (not saving training images)'}")
 
