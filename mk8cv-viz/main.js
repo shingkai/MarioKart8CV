@@ -1,8 +1,57 @@
 let raceTracker;
 let controls;
-let raceInterval;
-let currentSpeed = 1000;
+let ws;
 let currentRaceId = null;
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 5;
+const RECONNECT_DELAY = 2000;
+
+function connectWebSocket() {
+    ws = new WebSocket('ws://localhost:3000');
+
+    ws.onopen = () => {
+        console.log('Connected to server');
+        reconnectAttempts = 0;
+    };
+
+    ws.onmessage = (event) => {
+        try {
+            const data = JSON.parse(event.data);
+
+            switch (data.type) {
+                case 'raceUpdate':
+                    currentRaceId = data.raceId;
+                    const formattedPositions = data.positions.map(p => ({
+                        id: p.player_id,
+                        position: p.position
+                    }));
+                    raceTracker.updatePositions(formattedPositions);
+                    break;
+
+                case 'error':
+                    console.error('Server error:', data.message);
+                    break;
+            }
+        } catch (error) {
+            console.error('Error processing message:', error);
+        }
+    };
+
+    ws.onclose = () => {
+        console.log('Disconnected from server');
+        if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+            setTimeout(() => {
+                reconnectAttempts++;
+                console.log(`Reconnecting... Attempt ${reconnectAttempts}`);
+                connectWebSocket();
+            }, RECONNECT_DELAY);
+        }
+    };
+
+    ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+    };
+}
 
 async function fetchActiveRace() {
     try {
@@ -80,21 +129,15 @@ function shufflePositions(scenario) {
     return newPositions;
 }
 
-async function startRace() {
-    // First get the active race ID
-    currentRaceId = await fetchActiveRace();
-    if (!currentRaceId) {
-        console.log('No active race found');
-        return;
+function startRace() {
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+        connectWebSocket();
     }
-
-    // Start polling for position updates
-    raceInterval = setInterval(fetchPositions, currentSpeed);
 }
 
 function stopRace() {
-    if (raceInterval) {
-        clearInterval(raceInterval);
+    if (ws) {
+        ws.close();
     }
 }
 
@@ -108,7 +151,7 @@ function updateSpeed(newSpeed) {
 document.addEventListener('DOMContentLoaded', () => {
     raceTracker = new RaceTracker('race-tracker', {
         width: 128,
-        height: 700,
+        height: 400,
         margin: { top: 20, right: 20, bottom: 20, left: 20 },
         circleRadius: 24,
         circleSpacing: 56
@@ -118,7 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'controls',
         startRace,
         stopRace,
-        (scenario) => {}, // Scenario handling removed as we're using real data
-        updateSpeed
+        () => {}, // Scenario handling removed
+        () => {}  // Speed control removed as we're using real-time updates
     );
 });
