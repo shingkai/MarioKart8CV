@@ -81,6 +81,35 @@ class StateEncoder(json.JSONEncoder):
             return super().default(obj)
 
 
+class StateDecoder(json.JSONDecoder):
+    def __init__(self, *args, **kwargs):
+        super().__init__(object_hook=self.object_hook, *args, **kwargs)
+
+    def object_hook(self, obj):
+        # Decode PlayerState
+        if 'lap' in obj and 'race_laps' in obj and 'position' in obj:
+            return PlayerState(
+                lap=obj['lap'],
+                race_laps=obj['race_laps'],
+                position=obj['position'],
+                item1=Item[obj['item1']],  # assuming Item is an Enum
+                item2=Item[obj['item2']],
+                coins=obj['coins']
+            )
+
+        # Decode StateMessage
+        if 'race_id' in obj and 'device_id' in obj and 'frame_number' in obj:
+            return StateMessage(
+                race_id=obj['race_id'],
+                device_id=obj['device_id'],
+                frame_number=obj['frame_number'],
+                player1_state=obj['player1_state'],
+                player2_state=obj['player2_state']
+            )
+
+        return obj
+
+
 class PlayerState:
     def __init__(self, position: int, item1: Item, item2: Item, coins: int = 0, lap_num: int = 1, race_laps: int = 3):
         self.lap = lap_num
