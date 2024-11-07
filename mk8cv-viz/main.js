@@ -8,6 +8,7 @@ const RECONNECT_DELAY = 2000;
 
 function connectWebSocket() {
     ws = new WebSocket('ws://localhost:3000');
+    // ws = new WebSocket('ws://172.23.147.49:3000');
 
     ws.onopen = () => {
         console.log('Connected to server');
@@ -151,7 +152,7 @@ function updateSpeed(newSpeed) {
 document.addEventListener('DOMContentLoaded', () => {
     raceTracker = new RaceTracker('race-tracker', {
         width: 128,
-        height: 400,
+        height: 700,
         margin: { top: 20, right: 20, bottom: 20, left: 20 },
         circleRadius: 24,
         circleSpacing: 56
