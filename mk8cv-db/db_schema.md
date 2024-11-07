@@ -3,10 +3,11 @@
 ## Race Metadata
 Metadata describing a given race.
 
-Primary Key: `race_id`
+- Table Name: `race_metadata`
+- Primary Key: `race_id`
 
-| race_id (int) | name (text) | num_laps (int) | map_name (text) |
-|---------------|-------------|----------------|-----------------|
+| race_id (int) | race_name (text) | num_laps (int) | map_name (text) |
+|---------------|------------------|----------------|-----------------|
 | _unique identifier of the race_ | _human-readable name of the race_ | _total number of laps_ | _name of the map_ |
 | `001` | `2025 Elly Cup Race 01` | `3` | `Mario Kart Stadium` |
 | `002` | `2025 Elly Cup Race 02` | `3` | `Water Park` |
@@ -14,7 +15,8 @@ Primary Key: `race_id`
 ## Racer Metadata
 Metadata describing a given racer in a given race. One row per racer per race.
 
-Primary Key: `race_id + player_id`
+- Table Name: `racer_metadata`
+- Primary Key: `race_id + player_id`
 
 | race_id (int) | player_id (int) | device_id (int) | device_player_num (int) | player_name (text) | character (text) |
 |---------------|-----------------|-------------------------|-----------------|--------------------|------------------|
@@ -26,10 +28,11 @@ Primary Key: `race_id + player_id`
 | `001` | `5` | `2` | `1` | `Evan` | `Bowser` |
 | `001` | `6` | `2` | `2` | `Felix` | `Yoshi` |
 
-## Racer Data
+## Race Data
 Time-series data describing the events of a race.
 
-Primary Key: `race_id + timestamp + player_id`
+- Table Name: `race_data`
+- Primary Key: `race_id + timestamp + player_id`
 
 | race_id (int) | timestamp (int) | player_id (int) | lap (int) | position (int) | coins (int) | item_1 (text) | item_2 (text) |
 |---------------|-----------------|-----------------|-----------|----------------|-------------|---------------|---------------|
