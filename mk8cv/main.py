@@ -38,7 +38,7 @@ def main(_args: argparse.Namespace) -> None:
     for _ in range(_args.threads):
         process = Process(target=process_frames,
                           args=(
-                          process_queue, stop_process_event, _args.display, _args.training_save_dir, _args.write_csv, _args.sink, _args.extract))
+                          process_queue, stop_process_event, _args.race_id, _args.display, _args.training_save_dir, _args.write_csv, _args.sink, _args.extract))
         process.start()
         processing_processes.append(process)
 
@@ -103,8 +103,12 @@ if __name__ == "__main__":
                         help="Choose the message broker to use for publishing the processed frames")
     parser.add_argument("--training-save-dir", type=str,
                         help="Directory to save training images (optional)")
-    parser.add_argument("--extract", type=parse_enum(Stat), nargs='*', choices=list(Stat), default=list(Stat), help="Skip extracting player state and items")
-    parser.add_argument("--write-csv", action='store_true', help="enable/disable writing extracted stats to csv")
+    parser.add_argument("--extract", type=parse_enum(Stat), nargs='*', choices=list(Stat), default=list(Stat),
+                        help="Skip extracting player state and items")
+    parser.add_argument("--write-csv", action='store_true',
+                        help="enable/disable writing extracted stats to csv")
+    parser.add_argument("--race-id", type=int,
+                        help="manually specify a race_id (defaults to random int)")
 
     logging.getLogger().setLevel(logging.INFO)
     args = parser.parse_args()
@@ -125,6 +129,7 @@ if __name__ == "__main__":
     logging.info(f"Sink: {args.sink}")
     logging.info(f"Extracting: {args.extract}")
     logging.info(f"CSV writing: {args.write_csv}")
+    logging.info(f"Race ID: {args.race_id}")
     logging.info(
         f"Save training images to directory: {args.training_save_dir if args.training_save_dir else 'Not provided (not saving training images)'}")
 

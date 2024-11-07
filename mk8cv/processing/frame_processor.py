@@ -39,6 +39,7 @@ def generateCrops(device_id: int, frame_count: int, frame: cv2.typing.MatLike, t
 
 
 def process_frame(
+        race_id: int,
         device_id: int,
         frame_count: int,
         frame: cv2.typing.MatLike,
@@ -48,10 +49,6 @@ def process_frame(
         position_model: PositionClassifier = None,
         lap_model: LapClassifier = None,
 ) -> StateMessage:
-    race_id = random.randint(0,10000)  # TODO: decide how this should be determined and coordinated across frame processors + webapp
-
-    # if frame_count % 6000 == 0:
-    #     race_id += 1
 
     if extract is None or not extract:
         player1_state = PlayerState.generate_random_state()
@@ -106,6 +103,7 @@ def load_models(extract: list[Stat]) -> tuple[
 def process_frames(
         process_queue: Queue,
         stop_event: Event,
+        race_id: int,
         display: bool,
         training_save_dir: str,
         write_csv: bool = False,
@@ -123,6 +121,10 @@ def process_frames(
             sink = redis.Redis()
         case _:
             sink = None
+
+    if race_id is None:
+        race_id = random.randint(0,10000)  # TODO: decide how this should be determined and coordinated across frame processors + webapp
+
     start_time = time.time()
     frames_processed = 0
 
@@ -150,7 +152,7 @@ def process_frames(
         while not stop_event.is_set():
             try:
                 device_id, frame_count, frame = process_queue.get(timeout=1)
-                state_message = process_frame(device_id, frame_count, frame, extract, coin_model, item_model,
+                state_message = process_frame(race_id, device_id, frame_count, frame, extract, coin_model, item_model,
                                               position_model, lap_model)
 
                 player1_state = state_message.player1_state
