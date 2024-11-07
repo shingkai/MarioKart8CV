@@ -14,17 +14,27 @@ class RaceTracker {
             { id: 'P3', position: 4 },
             { id: 'P11', position: 5 },
             { id: 'P9', position: 6 },
-            { id: 'P12', position: 7 }
+            { id: 'P12', position: 7 },
+            { id: 'P8', position: 8 },
+            { id: 'P2', position: 9 },
+            { id: 'P5', position: 10 },
+            { id: 'P6', position: 11 },
+            { id: 'P10', position: 12 },
         ];
 
         this.colors = {
             'P1': '#ef4444',
+            'P2': '#f59e0b',
             'P3': '#3b82f6',
             'P4': '#22c55e',
+            'P5': '#10b981',
+            'P6': '#6b7280',
             'P7': '#eab308',
+            'P8': '#d946ef',
             'P9': '#ec4899',
+            'P10': '#6ee7b7',
             'P11': '#8b5cf6',
-            'P12': '#f97316'
+            'P12': '#e7c7cc',
         };
 
         this.initializeSVG();

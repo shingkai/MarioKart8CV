@@ -1,7 +1,39 @@
 let raceTracker;
 let controls;
 let raceInterval;
-let currentSpeed = 1000; // Default speed
+let currentSpeed = 1000;
+let currentRaceId = null;
+
+async function fetchActiveRace() {
+    try {
+        const response = await fetch('http://localhost:3000/api/active-race');
+        const data = await response.json();
+        return data.raceId;
+    } catch (error) {
+        console.error('Error fetching active race:', error);
+        return null;
+    }
+}
+
+async function fetchPositions() {
+    if (!currentRaceId) return;
+
+    try {
+        const response = await fetch(`http://localhost:3000/api/positions/${currentRaceId}`);
+        const positions = await response.json();
+
+        // Transform data to match our expected format
+        const formattedPositions = positions.map(p => ({
+            id: p.player_id,
+            position: p.position
+        }));
+
+        // Update the visualization
+        raceTracker.updatePositions(formattedPositions);
+    } catch (error) {
+        console.error('Error fetching positions:', error);
+    }
+}
 
 function shufflePositions(scenario) {
     const newPositions = [...raceTracker.positions];
@@ -48,12 +80,16 @@ function shufflePositions(scenario) {
     return newPositions;
 }
 
-function startRace() {
-    stopRace(); // Clear any existing interval
-    raceInterval = setInterval(() => {
-        const newPositions = shufflePositions(controls.currentScenario);
-        raceTracker.updatePositions(newPositions);
-    }, currentSpeed);
+async function startRace() {
+    // First get the active race ID
+    currentRaceId = await fetchActiveRace();
+    if (!currentRaceId) {
+        console.log('No active race found');
+        return;
+    }
+
+    // Start polling for position updates
+    raceInterval = setInterval(fetchPositions, currentSpeed);
 }
 
 function stopRace() {
@@ -72,7 +108,7 @@ function updateSpeed(newSpeed) {
 document.addEventListener('DOMContentLoaded', () => {
     raceTracker = new RaceTracker('race-tracker', {
         width: 128,
-        height: 400,
+        height: 700,
         margin: { top: 20, right: 20, bottom: 20, left: 20 },
         circleRadius: 24,
         circleSpacing: 56
@@ -82,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'controls',
         startRace,
         stopRace,
-        (scenario) => controls.currentScenario = scenario,
-        updateSpeed // Add speed change handler
+        (scenario) => {}, // Scenario handling removed as we're using real data
+        updateSpeed
     );
 });
