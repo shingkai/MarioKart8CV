@@ -1,11 +1,14 @@
 import argparse
 import json
+import logging
 from typing import Any
 
 import redis
 
 from mk8cv.data.state import PlayerState
 from db import SqliteDB
+
+logging.getLogger().setLevel(logging.DEBUG)
 
 
 class EventAggregater:
@@ -23,6 +26,7 @@ class EventAggregater:
 
         for message in pubsub.listen():
             if message['type'] == 'message':
+                logging.debug(f"Message received {message}")
                 self._process_event(json.loads(message['data']))
 
 
@@ -62,7 +66,7 @@ def main():
     try:
         aggregator.listen()
     except KeyboardInterrupt:
-        print("Aggregator stopped.")
+        logging.info("Aggregator stopped.")
 
 
 if __name__ == "__main__":

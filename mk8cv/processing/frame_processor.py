@@ -6,6 +6,7 @@ import time
 from multiprocessing import Event, Queue
 from queue import Empty
 from typing import Optional
+import random
 
 import cv2
 import redis
@@ -47,7 +48,7 @@ def process_frame(
         position_model: PositionClassifier = None,
         lap_model: LapClassifier = None,
 ) -> StateMessage:
-    race_id = 0  # This will need to be extracted from our CV thingy
+    race_id = random.randint(0,10000)  # TODO: decide how this should be determined and coordinated across frame processors + webapp
 
     # if frame_count % 6000 == 0:
     #     race_id += 1

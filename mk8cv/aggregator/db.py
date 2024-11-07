@@ -1,7 +1,10 @@
 from contextlib import contextmanager
+import logging
 import sqlite3
 
 from mk8cv.data.state import PlayerState
+
+logging.getLogger().setLevel(logging.DEBUG)
 
 
 class SqliteDB:
@@ -39,7 +42,7 @@ class SqliteDB:
                 'item_2': item_2
             }
 
-            print(row)
+            logging.debug(f"Inserting row {row}")
 
             cursor.execute(
                 '''
