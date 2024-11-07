@@ -11,8 +11,8 @@ const MAX_RECONNECT_ATTEMPTS = 5;
 const RECONNECT_DELAY = 2000;
 
 function connectWebSocket() {
-    // ws = new WebSocket('ws://localhost:3000');
-    ws = new WebSocket('ws://172.23.147.49:3000');
+    ws = new WebSocket('ws://localhost:3000');
+    // ws = new WebSocket('ws://172.23.147.49:3000');
 
     ws.onopen = () => {
         console.log('Connected to server');
