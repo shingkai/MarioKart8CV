@@ -1,41 +1,43 @@
-class RaceTracker {
+// raceTracker.js
+export class RaceTracker {
     constructor(containerId, options = {}) {
         this.container = d3.select(`#${containerId}`);
-        this.width = options.width || 128;
-        this.height = options.height || 400;
+        this.width = options.width || 400;
+        this.height = options.height || 700;
         this.margin = options.margin || { top: 20, right: 20, bottom: 20, left: 20 };
-        this.circleRadius = options.circleRadius || 24;
-        this.circleSpacing = options.circleSpacing || 56;
+        this.circleRadius = options.circleRadius || 32;
+        this.circleSpacing = options.circleSpacing || 72;
+
+        // Updated character map to work with P1-P12 format
+        this.characterMap = {
+            'P1': 'Mario',
+            'P2': 'Luigi',
+            'P3': 'Peach',
+            'P4': 'Yoshi',
+            'P5': 'Bowser',
+            'P6': 'Donkey Kong',
+            'P7': 'Toad',
+            'P8': 'Dry Bones',
+            'P9': 'Daisy',
+            'P10': 'Waluigi',
+            'P11': 'Rosalina',
+            'P12': 'Metal Mario'
+        };
 
         this.positions = [
-            { id: 'P7', position: 1 },
-            { id: 'P4', position: 2 },
-            { id: 'P1', position: 3 },
-            { id: 'P3', position: 4 },
-            { id: 'P11', position: 5 },
-            { id: 'P9', position: 6 },
-            { id: 'P12', position: 7 },
-            { id: 'P8', position: 8 },
-            { id: 'P2', position: 9 },
-            { id: 'P5', position: 10 },
-            { id: 'P6', position: 11 },
-            { id: 'P10', position: 12 },
+            { id: 'P1', position: 1, coins: 5, item1: 'Banana', item2: 'Green Shell' },
+            { id: 'P2', position: 2, coins: 3, item1: 'Red Shell', item2: null },
+            { id: 'P3', position: 3, coins: 8, item1: 'Star', item2: null },
+            { id: 'P4', position: 4, coins: 2, item1: null, item2: null },
+            { id: 'P5', position: 5, coins: 6, item1: 'Mushroom', item2: 'Mushroom' },
+            { id: 'P6', position: 6, coins: 4, item1: 'Spiny Shell', item2: null },
+            { id: 'P7', position: 7, coins: 1, item1: null, item2: null },
+            { id: 'P8', position: 8, coins: 7, item1: 'Lightning', item2: null },
+            { id: 'P9', position: 9, coins: 0, item1: null, item2: null },
+            { id: 'P10', position: 10, coins: 9, item1: 'Banana', item2: 'Banana' },
+            { id: 'P11', position: 11, coins: 4, item1: null, item2: null },
+            { id: 'P12', position: 12, coins: 2, item1: 'Green Shell', item2: null },
         ];
-
-        this.colors = {
-            'P1': '#ef4444',
-            'P2': '#f59e0b',
-            'P3': '#3b82f6',
-            'P4': '#22c55e',
-            'P5': '#10b981',
-            'P6': '#6b7280',
-            'P7': '#eab308',
-            'P8': '#d946ef',
-            'P9': '#ec4899',
-            'P10': '#6ee7b7',
-            'P11': '#8b5cf6',
-            'P12': '#e7c7cc',
-        };
 
         this.initializeSVG();
         this.drawPositions();
@@ -48,40 +50,108 @@ class RaceTracker {
             .attr('height', this.height);
     }
 
-    drawPositions() {
-        const positions = this.svg.selectAll('g')
+drawPositions() {
+        // Clear existing content
+        this.svg.selectAll('*').remove();
+
+        // Add debug logging
+        // console.log('Drawing positions:', this.positions);
+
+        // Create group for each racer
+        const racerGroups = this.svg.selectAll('g')
             .data(this.positions, d => d.id)
             .enter()
             .append('g')
             .attr('transform', (d, i) =>
                 `translate(${this.width/2}, ${this.margin.top + i * this.circleSpacing})`);
 
-        positions.append('circle')
+        // Add background circle
+        racerGroups.append('circle')
             .attr('r', this.circleRadius)
-            .style('fill', d => this.colors[d.id] || '#6b7280');
+            .attr('fill', '#1f2937')
+            .attr('stroke', '#374151')
+            .attr('stroke-width', 2);
 
-        positions.append('text')
-            .attr('text-anchor', 'middle')
-            .attr('dy', '0.3em')
-            .attr('fill', 'white')
-            .attr('font-weight', 'bold')
-            .style('font-size', '14px')
-            .text(d => d.id);
+        // Add character images with debug logging
+        racerGroups.append('image')
+            .attr('x', -this.circleRadius)
+            .attr('y', -this.circleRadius)
+            .attr('width', this.circleRadius * 2)
+            .attr('height', this.circleRadius * 2)
+            .attr('href', d => {
+                // console.log('Processing player:', d);
+                const charName = this.characterMap[d.id];
+                if (!charName) {
+                    console.warn(`No character mapping found for player ${d.id}`);
+                    return ''; // Return empty string to prevent 404
+                }
+                const imagePath = `mario_kart_8_images/Character select icons/${charName}.png`;
+                // console.log('Image path:', imagePath);
+                return imagePath;
+            })
+            .attr('clip-path', 'circle()');
+
+        // Add coin count
+        racerGroups.append('g')
+            .attr('transform', `translate(${this.circleRadius * 1.2}, ${-this.circleRadius * 0.5})`)
+            .call(g => {
+                g.append('circle')
+                    .attr('r', 12)
+                    .attr('fill', '#fbbf24');
+                g.append('text')
+                    .attr('text-anchor', 'middle')
+                    .attr('dy', '0.35em')
+                    .attr('fill', 'black')
+                    .attr('font-weight', 'bold')
+                    .attr('font-size', '12px')
+                    .text(d => d.coins || 0);
+            });
+
+        // Add items with adjusted naming
+        racerGroups.each((d, i, nodes) => {
+            const g = d3.select(nodes[i]);
+
+            // Item 1
+            if (d.item1 && d.item1 !== 'None') {
+                const item1Name = d.item1; // Remove spaces from item names
+                g.append('image')
+                    .attr('x', -this.circleRadius * 1.8)
+                    .attr('y', -this.circleRadius * 0.75)
+                    .attr('width', this.circleRadius)
+                    .attr('height', this.circleRadius)
+                    .attr('href', `mario_kart_8_images/Items/${item1Name}.png`);
+            }
+
+            // Item 2
+            if (d.item2 && d.item2 !== 'None') {
+                const item2Name = d.item2; // Remove spaces from item names
+                g.append('image')
+                    .attr('x', -this.circleRadius * 1.8)
+                    .attr('y', -this.circleRadius * 0.75 + this.circleRadius * 1.1)
+                    .attr('width', this.circleRadius)
+                    .attr('height', this.circleRadius)
+                    .attr('href', `mario_kart_8_images/Items/${item2Name}.png`);
+            }
+        });
     }
 
     updatePositions(newPositions) {
+        // console.log('Updating positions with:', newPositions);
+
+        this.positions = newPositions;
+
         const transition = d3.transition()
             .duration(500)
             .ease(d3.easeBackOut);
 
-        const positions = this.svg.selectAll('g')
+        const groups = this.svg.selectAll('g')
             .data(newPositions, d => d.id);
 
-        positions.transition(transition)
+        groups.transition(transition)
             .attr('transform', (d, i) =>
                 `translate(${this.width/2}, ${this.margin.top + i * this.circleSpacing})`);
 
-        // Update the stored positions
-        this.positions = newPositions;
+        // Redraw everything to update coins and items
+        this.drawPositions();
     }
 }

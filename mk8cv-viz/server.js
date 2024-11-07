@@ -15,7 +15,7 @@ app.use(express.json());
 app.use(express.static('public'));
 
 // Connect to SQLite database
-const db = new sqlite3.Database('races.db', (err) => {
+const db = new sqlite3.Database('../mk8cv.db', (err) => {
     if (err) {
         console.error('Error connecting to database:', err);
     } else {
@@ -51,7 +51,7 @@ async function sendActiveRaceData(ws) {
         // Get active race
         db.get(`
             SELECT DISTINCT race_id 
-            FROM race_positions 
+            FROM race_data 
             ORDER BY timestamp DESC 
             LIMIT 1
         `, [], (err, raceRow) => {
@@ -60,17 +60,21 @@ async function sendActiveRaceData(ws) {
                 return;
             }
 
-            // Get positions for active race
+            // Get latest positions for active race
             db.all(`
-                SELECT player_id, position 
-                FROM race_positions 
-                WHERE race_id = ? 
-                AND timestamp = (
-                    SELECT MAX(timestamp) 
-                    FROM race_positions 
+                WITH LatestTimestamps AS (
+                    SELECT player_id, MAX(timestamp) as max_timestamp
+                    FROM race_data
                     WHERE race_id = ?
+                    GROUP BY player_id
                 )
-                ORDER BY position
+                SELECT rd.player_id, rd.position, rd.coins, rd.item_1, rd.item_2
+                FROM race_data rd
+                INNER JOIN LatestTimestamps lt 
+                    ON rd.player_id = lt.player_id 
+                    AND rd.timestamp = lt.max_timestamp
+                WHERE rd.race_id = ?
+                ORDER BY rd.position
             `, [raceRow.race_id, raceRow.race_id], (err, positions) => {
                 if (err) {
                     ws.send(JSON.stringify({ type: 'error', message: err.message }));
@@ -90,45 +94,35 @@ async function sendActiveRaceData(ws) {
 }
 
 // Function to broadcast updates to all connected clients
-function broadcastRaceUpdate(raceId, positions) {
-    const message = JSON.stringify({
-        type: 'raceUpdate',
-        raceId: raceId,
-        positions: positions
-    });
-
+function broadcastRaceUpdate(raceId) {
     clients.forEach(client => {
         if (client.readyState === WebSocket.OPEN) {
-            client.send(message);
+            sendActiveRaceData(client);
         }
     });
 }
 
 // API endpoint to receive updates from your computer vision system
-app.post('/api/position-update', (req, res) => {
-    const { raceId, positions, timestamp } = req.body;
+app.post('/api/racer-update', (req, res) => {
+    const { raceId, timestamp, playerId, position, lap, coins, item1, item2 } = req.body;
 
-    // Begin transaction
-    db.serialize(() => {
-        const stmt = db.prepare(`
-            INSERT INTO race_positions (timestamp, player_id, position, race_id)
-            VALUES (?, ?, ?, ?)
-        `);
+    // Insert the new racer update
+    db.run(`
+        INSERT INTO race_data (race_id, timestamp, player_id, lap, position, coins, item_1, item_2)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `, [raceId, timestamp, playerId, lap, position, coins || 0, item1 || 'None', item2 || 'None'],
+    (err) => {
+        if (err) {
+            console.error('Error inserting race data:', err);
+            res.status(500).json({ error: err.message });
+            return;
+        } else {
+            console.log(`Received update: ${playerId} is in position ${position} with ${coins} coins`);
+        }
 
-        positions.forEach(pos => {
-            stmt.run(timestamp, pos.player_id, pos.position, raceId);
-        });
-
-        stmt.finalize((err) => {
-            if (err) {
-                res.status(500).json({ error: err.message });
-                return;
-            }
-
-            // Broadcast update to all connected clients
-            broadcastRaceUpdate(raceId, positions);
-            res.json({ success: true });
-        });
+        // Broadcast update to all connected clients
+        broadcastRaceUpdate(raceId);
+        res.json({ success: true });
     });
 });
 
