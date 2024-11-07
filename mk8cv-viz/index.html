@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mario Kart Race Tracker</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+        .race-tracker {
+            background: #1f2937;
+            border-radius: 8px;
+            padding: 8px;
+        }
+        .controls {
+            background: #1f2937;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+            width: 256px;
+        }
+        .btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: none;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .btn-start { background: #22c55e; }
+        .btn-start:hover { background: #16a34a; }
+        .btn-stop { background: #ef4444; }
+        .btn-stop:hover { background: #dc2626; }
+        .btn-scenario {
+            width: 100%;
+            margin-bottom: 8px;
+            background: #4b5563;
+        }
+        .btn-scenario:hover { background: #374151; }
+        .btn-scenario.active { background: #3b82f6; }
+        .speed-control {
+            margin-top: 16px;
+            padding: 8px;
+            color: white;
+        }
+
+        .speed-slider {
+            width: 100%;
+            margin: 8px 0;
+        }
+
+        /* Styling for the range input */
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: #4b5563;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            transition: background .15s ease-in-out;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: #2563eb;
+        }
+
+        .speed-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            color: #9ca3af;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls" class="controls"></div>
+    <div id="race-tracker" class="race-tracker"></div>
+    <script src="raceTracker.js"></script>
+    <script src="controls.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
