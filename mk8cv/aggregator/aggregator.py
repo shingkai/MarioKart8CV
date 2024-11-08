@@ -6,7 +6,7 @@ from typing import Any
 import redis
 
 from mk8cv.data.state import PlayerState
-from db import SqliteDB
+from db import Database, SqliteDB
 
 logging.getLogger().setLevel(logging.DEBUG)
 
@@ -17,7 +17,7 @@ class EventAggregater:
         self.port = port
         self.redis_client = redis.Redis(host=host, port=port, db=0)
         self.channel = channel
-        self.database = SqliteDB()
+        self.database: Database = SqliteDB()
 
 
     def listen(self) -> None:

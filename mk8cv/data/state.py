@@ -159,3 +159,23 @@ class StateMessage:
             Player.P2: self.player2_state if self.player2_state else {}
         }, cls=StateEncoder)
 
+
+class RaceDataRow:
+    def __init__(self, row: tuple):
+        self.race_id = row[0]
+        self.timestamp = row[1]
+        self.player_id = row[2]
+        self.lap = row[3]
+        self.position = row[4]
+        self.coins = row[5]
+        self.item_1 = row[6]
+        self.item_2 = row[7]
+
+    def to_player_state(self):
+        return PlayerState(
+            position=self.position,
+            item1=Item[self.item_1],
+            item2=Item[self.item_2],
+            coins=self.coins,
+            lap_num=self.lap) # TODO: decide if race-laps should be populated or left default
+
