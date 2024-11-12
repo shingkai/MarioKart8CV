@@ -31,17 +31,17 @@ function connectWebSocket(raceId) {
                 case 'raceUpdate':
                     // Keep the original player_id format - no need to modify it
                     const formattedPositions = data.positions.map(p => ({
-                        id: p.player_id,           // Keep as "P1", "P2", etc.
+                        id: "P" + p.player_id,           // Keep as "P1", "P2", etc.
                         position: p.position,
                         coins: p.coins || 0,
                         item1: p.item_1,
                         item2: p.item_2
                     }));
-                    // console.log('Formatted positions:', formattedPositions);
+                    console.log('Formatted positions:', formattedPositions);
                     raceTracker.updatePositions(formattedPositions);
                     break;
 
-                case 'racer_metadata':
+                case 'racerMetadata':
                     console.log(`racer: ${JSON.stringify(data.metadata)}`)
                     setRacers(data.metadata)
                     break;

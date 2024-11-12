@@ -9,34 +9,14 @@ export class RaceTracker {
         this.circleSpacing = options.circleSpacing || 72;
 
         // Updated character map to work with P1-P12 format
-        this.characterMap = {
-            'P1': 'Mario',
-            'P2': 'Luigi',
-            'P3': 'Peach',
-            'P4': 'Yoshi',
-            'P5': 'Bowser',
-            'P6': 'Donkey Kong',
-            'P7': 'Toad',
-            'P8': 'Dry Bones',
-            'P9': 'Daisy',
-            'P10': 'Waluigi',
-            'P11': 'Rosalina',
-            'P12': 'Metal Mario'
-        };
+        this.characterMap = new Map([
+            ['P1', 'Mario'],
+            ['P2', 'Luigi']
+        ]);
 
         this.positions = [
-            { id: 'P1', position: 1, coins: 5, item1: 'Banana', item2: 'Green Shell' },
-            { id: 'P2', position: 2, coins: 3, item1: 'Red Shell', item2: null },
-            { id: 'P3', position: 3, coins: 8, item1: 'Star', item2: null },
-            { id: 'P4', position: 4, coins: 2, item1: null, item2: null },
-            { id: 'P5', position: 5, coins: 6, item1: 'Mushroom', item2: 'Mushroom' },
-            { id: 'P6', position: 6, coins: 4, item1: 'Spiny Shell', item2: null },
-            { id: 'P7', position: 7, coins: 1, item1: null, item2: null },
-            { id: 'P8', position: 8, coins: 7, item1: 'Lightning', item2: null },
-            { id: 'P9', position: 9, coins: 0, item1: null, item2: null },
-            { id: 'P10', position: 10, coins: 9, item1: 'Banana', item2: 'Banana' },
-            { id: 'P11', position: 11, coins: 4, item1: null, item2: null },
-            { id: 'P12', position: 12, coins: 2, item1: 'Green Shell', item2: null },
+            { id: 'P1', position: 1, coins: 0, item1: null, item2: null },
+            { id: 'P2', position: 2, coins: 0, item1: null, item2: null },
         ];
 
         this.initializeSVG();
@@ -72,6 +52,8 @@ drawPositions() {
             .attr('stroke', '#374151')
             .attr('stroke-width', 2);
 
+        console.log(this.characterMap)
+
         // Add character images with debug logging
         racerGroups.append('image')
             .attr('x', -this.circleRadius)
@@ -79,8 +61,10 @@ drawPositions() {
             .attr('width', this.circleRadius * 2)
             .attr('height', this.circleRadius * 2)
             .attr('href', d => {
-                // console.log('Processing player:', d);
-                const charName = this.characterMap[d.id];
+                console.log('Processing player:', d);
+                const charName = this.characterMap.get(d.id);
+                console.log(this.characterMap)
+                console.log(charName)
                 if (!charName) {
                     console.warn(`No character mapping found for player ${d.id}`);
                     return ''; // Return empty string to prevent 404
@@ -112,7 +96,7 @@ drawPositions() {
             const g = d3.select(nodes[i]);
 
             // Item 1
-            if (d.item1 && d.item1 !== 'None') {
+            if (d.item1 && d.item1 !== 'NONE') {
                 const item1Name = d.item1; // Remove spaces from item names
                 g.append('image')
                     .attr('x', -this.circleRadius * 1.8)
@@ -123,7 +107,7 @@ drawPositions() {
             }
 
             // Item 2
-            if (d.item2 && d.item2 !== 'None') {
+            if (d.item2 && d.item2 !== 'NONE') {
                 const item2Name = d.item2; // Remove spaces from item names
                 g.append('image')
                     .attr('x', -this.circleRadius * 1.8)

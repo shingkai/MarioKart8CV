@@ -40,8 +40,11 @@ wss.on('connection', (ws) => {
             switch(data.type) {
                 case 'raceId':
                     console.log(`New client requesting raceId: ${data.raceId}`)
+                    // Send Racer Metadata
                     sendRacerMetadata(ws, data.raceId)
                     raceId = data.raceId
+                    // Send initial race data
+                    sendActiveRaceData(ws, raceId);
                     break;
             }
         } catch (error) {
@@ -49,8 +52,6 @@ wss.on('connection', (ws) => {
         }
     }
 
-    // Send initial race data
-    sendActiveRaceData(ws, raceId);
 
     ws.on('close', () => {
         console.log('Client disconnected');
@@ -73,7 +74,7 @@ async function sendRacerMetadata(ws, raceId) {
                 return;
             }
             console.log(`sending ${JSON.stringify(racerMetadata)}`)
-            ws.send(JSON.stringify({ type:'racer_metadata', metadata: racerMetadata }));
+            ws.send(JSON.stringify({ type:'racerMetadata', metadata: racerMetadata }));
         });
     } catch (error) {
         console.error('Error sending race data:', error);
@@ -82,6 +83,7 @@ async function sendRacerMetadata(ws, raceId) {
 
 // Function to send race data to a specific client
 async function sendActiveRaceData(ws, raceId) {
+    console.log(`sending race update for raceId: ${raceId}`)
     try {
         // Get latest positions for active race
         db.all(`
@@ -103,7 +105,11 @@ async function sendActiveRaceData(ws, raceId) {
                 ws.send(JSON.stringify({ type: 'error', message: err.message }));
                 return;
             }
-
+            console.debug(`sending: ${JSON.stringify({
+                type: 'raceUpdate',
+                raceId: raceId,
+                positions: positions
+            })}`)
             ws.send(JSON.stringify({
                 type: 'raceUpdate',
                 raceId: raceId,
