@@ -8,19 +8,7 @@ export class RaceTracker {
         this.circleRadius = options.circleRadius || 32;
         this.circleSpacing = options.circleSpacing || 72;
 
-        // Updated character map to work with P1-P12 format
-        this.characterMap = new Map([
-            ['P1', 'Mario'],
-            ['P2', 'Luigi']
-        ]);
-
-        this.positions = [
-            { id: 'P1', position: 1, coins: 0, item1: null, item2: null },
-            { id: 'P2', position: 2, coins: 0, item1: null, item2: null },
-        ];
-
         this.initializeSVG();
-        this.drawPositions();
     }
 
     initializeSVG() {
@@ -30,7 +18,7 @@ export class RaceTracker {
             .attr('height', this.height);
     }
 
-drawPositions() {
+    drawPositions() {
         // Clear existing content
         this.svg.selectAll('*').remove();
 

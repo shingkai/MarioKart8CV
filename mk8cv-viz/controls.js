@@ -28,15 +28,20 @@ export class RaceControls {
     }
 
     toggleRace() {
-        this.isRacing = !this.isRacing;
         if (this.isRacing) {
             this.startStopButton.className = 'btn btn-stop';
             this.startStopButton.textContent = 'Stop Race';
             this.onStart(this.raceIDInput.value);
+            this.isRacing = !this.isRacing;
         } else {
             this.startStopButton.className = 'btn btn-start';
             this.startStopButton.textContent = 'Start Race';
-            this.onStop();
+            if (this.raceIDInput.value) {
+                this.onStop();
+                this.isRacing = !this.isRacing;
+            } else {
+                alert('Race ID is required');
+            }
         }
     }
 
