@@ -15,7 +15,7 @@ app.use(express.json());
 app.use(express.static('public'));
 
 // Connect to SQLite database
-const db = new sqlite3.Database('../mk8cv.db', (err) => {
+const db = new sqlite3.Database('mk8cv.db', (err) => {
     if (err) {
         console.error('Error connecting to database:', err);
     } else {
@@ -31,8 +31,26 @@ wss.on('connection', (ws) => {
     console.log('New client connected');
     clients.add(ws);
 
+    let raceId = undefined
+
+    ws.onmessage = (event) => {
+        try {
+            const data = JSON.parse(event.data)
+
+            switch(data.type) {
+                case 'raceId':
+                    console.log(`New client requesting raceId: ${data.raceId}`)
+                    sendRacerMetadata(ws, data.raceId)
+                    raceId = data.raceId
+                    break;
+            }
+        } catch (error) {
+            console.error('Error processing message:', error);
+        }
+    }
+
     // Send initial race data
-    sendActiveRaceData(ws);
+    sendActiveRaceData(ws, raceId);
 
     ws.on('close', () => {
         console.log('Client disconnected');
@@ -45,48 +63,52 @@ wss.on('connection', (ws) => {
     });
 });
 
-// Function to send race data to a specific client
-async function sendActiveRaceData(ws) {
+async function sendRacerMetadata(ws, raceId) {
     try {
-        // Get active race
-        db.get(`
-            SELECT DISTINCT race_id 
-            FROM race_data 
-            ORDER BY timestamp DESC 
-            LIMIT 1
-        `, [], (err, raceRow) => {
-            if (err || !raceRow) {
-                ws.send(JSON.stringify({ type: 'error', message: 'No active race' }));
+        console.debug(`fetching racer metadata for raceId: ${raceId}`)
+        db.all('SELECT * from racer_metadata where race_id = ?;', [raceId], (err, racerMetadata) => {
+            if (err || !racerMetadata) {
+                console.error(racerMetadata)
+                ws.send(JSON.stringify({ type: 'error', message: `No race with id ${raceId} found` }));
+                return;
+            }
+            console.log(`sending ${JSON.stringify(racerMetadata)}`)
+            ws.send(JSON.stringify({ type:'racer_metadata', metadata: racerMetadata }));
+        });
+    } catch (error) {
+        console.error('Error sending race data:', error);
+    }
+}
+
+// Function to send race data to a specific client
+async function sendActiveRaceData(ws, raceId) {
+    try {
+        // Get latest positions for active race
+        db.all(`
+            WITH LatestTimestamps AS (
+                SELECT player_id, MAX(timestamp) as max_timestamp
+                FROM race_data
+                WHERE race_id = ?
+                GROUP BY player_id
+            )
+            SELECT rd.player_id, rd.position, rd.coins, rd.item_1, rd.item_2
+            FROM race_data rd
+            INNER JOIN LatestTimestamps lt 
+                ON rd.player_id = lt.player_id 
+                AND rd.timestamp = lt.max_timestamp
+            WHERE rd.race_id = ?
+            ORDER BY rd.position
+        `, [raceId, raceId], (err, positions) => {
+            if (err) {
+                ws.send(JSON.stringify({ type: 'error', message: err.message }));
                 return;
             }
 
-            // Get latest positions for active race
-            db.all(`
-                WITH LatestTimestamps AS (
-                    SELECT player_id, MAX(timestamp) as max_timestamp
-                    FROM race_data
-                    WHERE race_id = ?
-                    GROUP BY player_id
-                )
-                SELECT rd.player_id, rd.position, rd.coins, rd.item_1, rd.item_2
-                FROM race_data rd
-                INNER JOIN LatestTimestamps lt 
-                    ON rd.player_id = lt.player_id 
-                    AND rd.timestamp = lt.max_timestamp
-                WHERE rd.race_id = ?
-                ORDER BY rd.position
-            `, [raceRow.race_id, raceRow.race_id], (err, positions) => {
-                if (err) {
-                    ws.send(JSON.stringify({ type: 'error', message: err.message }));
-                    return;
-                }
-
-                ws.send(JSON.stringify({
-                    type: 'raceUpdate',
-                    raceId: raceRow.race_id,
-                    positions: positions
-                }));
-            });
+            ws.send(JSON.stringify({
+                type: 'raceUpdate',
+                raceId: raceId,
+                positions: positions
+            }));
         });
     } catch (error) {
         console.error('Error sending race data:', error);

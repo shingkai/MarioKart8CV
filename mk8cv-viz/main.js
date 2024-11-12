@@ -4,19 +4,22 @@ import { RaceControls } from './controls.js';
 
 let raceTracker;
 let controls;
+let currentRaceId;
 let ws;
-let currentRaceId = null;
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 5;
 const RECONNECT_DELAY = 2000;
 
-function connectWebSocket() {
+function connectWebSocket(raceId) {
     ws = new WebSocket('ws://localhost:3000');
     // ws = new WebSocket('ws://172.23.147.49:3000');
 
     ws.onopen = () => {
         console.log('Connected to server');
         reconnectAttempts = 0;
+        console.log(`getting racer metadata for raceId: ${raceId}`)
+        ws.send(JSON.stringify({ type : 'raceId', raceId : raceId }))
+        currentRaceId = raceId
     };
 
     ws.onmessage = (event) => {
@@ -26,7 +29,6 @@ function connectWebSocket() {
 
             switch (data.type) {
                 case 'raceUpdate':
-                    currentRaceId = data.raceId;
                     // Keep the original player_id format - no need to modify it
                     const formattedPositions = data.positions.map(p => ({
                         id: p.player_id,           // Keep as "P1", "P2", etc.
@@ -37,6 +39,11 @@ function connectWebSocket() {
                     }));
                     // console.log('Formatted positions:', formattedPositions);
                     raceTracker.updatePositions(formattedPositions);
+                    break;
+
+                case 'racer_metadata':
+                    console.log(`racer: ${JSON.stringify(data.metadata)}`)
+                    setRacers(data.metadata)
                     break;
 
                 case 'error':
@@ -54,7 +61,7 @@ function connectWebSocket() {
             setTimeout(() => {
                 reconnectAttempts++;
                 console.log(`Reconnecting... Attempt ${reconnectAttempts}`);
-                connectWebSocket();
+                connectWebSocket(raceId);
             }, RECONNECT_DELAY);
         }
     };
@@ -64,9 +71,27 @@ function connectWebSocket() {
     };
 }
 
-function startRace() {
+function setRacers(racer_metadata) {
+    console.log("setting racers...")
+    console.log(`processing: ${JSON.stringify(racer_metadata)}`)
+    console.log(typeof racer_metadata)
+
+    const characterMap = new Map()
+
+    for (const i in racer_metadata) {
+        const racer = racer_metadata[i]
+        console.log(JSON.stringify(racer))
+        console.log(`P${racer.player_id}`)
+        console.log(racer.character)
+
+        characterMap.set(`P${racer.player_id}`, `${racer.character}`)
+    }
+    raceTracker.characterMap = characterMap
+}
+
+function startRace(raceId) {
     if (!ws || ws.readyState !== WebSocket.OPEN) {
-        connectWebSocket();
+        connectWebSocket(raceId);
     }
 }
 
