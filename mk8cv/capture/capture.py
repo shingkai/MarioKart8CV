@@ -18,7 +18,7 @@ def capture_and_process(
     logging.getLogger().setLevel(logging.INFO)
     logging.info(f"Starting capture process for device {device_id}...")
 
-    cap = cv2.VideoCapture(source)
+    cap = cv2.VideoCapture(source, cv2.CAP_DSHOW)
     if not cap.isOpened():
         logging.error(f"Error opening video source: {source}")
         stop_event.set()
@@ -29,6 +29,7 @@ def capture_and_process(
     if isinstance(source, int):  # Real device
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+        cap.set(cv2.CAP_PROP_FPS, fps)
     else:  # Video file
         frame_time = 1 / fps if fps else 0
 
@@ -63,7 +64,7 @@ def capture_and_process(
             elapsed_time = time.time() - start_time
             if elapsed_time >= 1.0:
                 actual_fps = frames_processed / elapsed_time
-                logging.info(f"Device {device_id}: Actual FPS = {actual_fps:.2f}")
+                logging.info(f"Device {device_id}: Input FPS = {actual_fps:.2f}")
                 frames_processed = 0
                 start_time = time.time()
 

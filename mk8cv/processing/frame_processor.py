@@ -205,7 +205,9 @@ def process_frames(
                     visualize(frame, states, device_id, stop_event)
 
             except Empty:
-                print('empty')
                 logging.info("Queue is empty. Waiting for frames...")
-                stop_event.set()
+                continue
+
+            except Exception as e:
+                logging.error(f"Error processing frame: {e}")
                 continue

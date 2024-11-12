@@ -28,3 +28,7 @@ Coordinates are based as a percentage of the total image. Values will need to be
 | P2 Coins | 0.53 | 0.59 | 0.91 | 0.97 |
 | P1 Lap | 0.09 | 0.17 | 0.91 | 0.97 |
 | P2 Lap | 0.59 | 0.67 | 0.91 | 0.97 |
+
+## todo
+- [ ] Handle switch per-tv resolution scaling (crop bounding box & scale?)
+- [ ] figure out why capture only gets 30fps instead of 60

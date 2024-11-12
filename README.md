@@ -1,6 +1,18 @@
 # MarioKart8CV
 A project to take in MarioKart 8 videos and generate race stats using computer vision
 
+# 0. Development Setup
+## Ubuntu/Debian
+
+## macOS
+
+## Windows
+```powershell
+python3 -m pip install --upgrade pip
+pip3 install -r requirements.txt
+
+```
+
 # 1. Install Redis
 ## Ubuntu/Debian
 ```
