@@ -45,7 +45,7 @@ class MobileNetV3ItemClassifier(ItemClassifier):
     def __init__(self):
         super().__init__()
 
-    def load(self, model_path=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'image_classifier_mobilenetv3.pth')):
+    def load(self, model_path=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'item_classifier_mobilenetv3.pth')):
         self._model = models.mobilenet_v3_large(weights=None)
         num_classes = len(self._classes)
         self._model.classifier[3] = nn.Linear(self._model.classifier[3].in_features, num_classes)
