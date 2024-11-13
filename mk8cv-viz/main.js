@@ -99,9 +99,9 @@ function stopRace() {
 
 document.addEventListener('DOMContentLoaded', () => {
     raceTracker = new RaceTracker('race-tracker', {
-        width: 400,
+        width: 800,
         height: 700,
-        margin: { top: 20, right: 20, bottom: 20, left: 20 },
+        margin: { top: 40, right: 40, bottom: 40, left: 40 },
         circleRadius: 32,
         circleSpacing: 72
     });

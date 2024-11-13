@@ -3,7 +3,7 @@ export class RaceTracker {
         this.container = d3.select(`#${containerId}`);
         this.width = options.width || 800;
         this.height = options.height || 400;
-        this.margin = options.margin || { top: 20, right: 100, bottom: 30, left: 40 };
+        this.margin = options.margin || { top: 20, right: 20, bottom: 20, left: 20 };
         this.circleRadius = options.circleRadius || 24;
         
         // Initialize data storage for time series
@@ -65,25 +65,6 @@ export class RaceTracker {
             .attr('color', axisColor)
             .selectAll('line, path')
             .attr('stroke', axisColor);
-
-        this.svg.selectAll('.x-axis text, .y-axis text')
-            .attr('fill', axisColor);
-
-        // Add and style labels
-        this.svg.append('text')
-            .attr('transform', 
-                `translate(${this.width/2},${this.height - 5})`)
-            .style('text-anchor', 'middle')
-            .attr('fill', axisColor)
-            // .text('Time');
-
-        this.svg.append('text')
-            .attr('transform', 'rotate(-90)')
-            .attr('y', 15)
-            .attr('x', -(this.height/2))
-            .style('text-anchor', 'middle')
-            .attr('fill', axisColor)
-            // .text('Position');
     }
 
     updateScales() {
