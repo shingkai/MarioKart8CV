@@ -71,7 +71,7 @@ class SqliteDB:
 
             cursor.execute(
                 f'''
-                INSERT INTO {self.race_data_table}
+                INSERT OR REPLACE INTO {self.race_data_table}
                 (race_id, timestamp, player_id, lap, position, coins, item_1, item_2)
                 VALUES (:race_id, :timestamp, :player_id, :lap, :position, :coins, :item_1, :item_2);
                 ''', row)

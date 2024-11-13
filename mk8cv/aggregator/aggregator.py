@@ -5,7 +5,8 @@ from typing import Any
 
 import redis
 
-from mk8cv.data.state import PlayerState
+from mk8cv.aggregator.anomaly_correction import AnomalyCorrector, SlidingWindowAnomalyCorrector
+from mk8cv.data.state import PlayerState, Item
 from db import Database, SqliteDB
 
 logging.getLogger().setLevel(logging.DEBUG)
@@ -18,6 +19,7 @@ class EventAggregater:
         self.redis_client = redis.Redis(host=host, port=port, db=0)
         self.channel = channel
         self.database: Database = SqliteDB()
+        self.anomalyCorrector: AnomalyCorrector = SlidingWindowAnomalyCorrector(self.database);
 
 
     def listen(self) -> None:
@@ -36,17 +38,25 @@ class EventAggregater:
         frame_number = event['frame_number']
 
         for i, key in [(1, "player1_state"), (2, "player2_state")]:
-            player_state = event[key]
+            player_data = event[key]
             player_id = device_id * 2 + i
+
+            player_state = PlayerState( player_data['position'],
+                                        Item[player_data['item1']],
+                                        Item[player_data['item2']],
+                                        player_data['coins'],
+                                        player_data['lap'])
+            
+            corrected_state = self.anomalyCorrector.correct_anomalies(frame_number, player_id, player_state)
 
             self.database.write_event(race_id,
                                       frame_number,
                                       player_id,
-                                      player_state['lap'],
-                                      player_state['position'],
-                                      player_state['coins'],
-                                      player_state['item1'],
-                                      player_state['item2'])
+                                      corrected_state.lap,
+                                      corrected_state.position,
+                                      corrected_state.coins,
+                                      corrected_state.item1,
+                                      corrected_state.item2)
 
 
 
