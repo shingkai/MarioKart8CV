@@ -71,7 +71,11 @@ export class RaceTracker {
     updateScales() {
         // Update x scale domain to include one extra tick
         const maxTime = this.timeIndex;
-        this.xScale.domain([0, maxTime + 1]);
+        if (maxTime < this.timeWindowSize) {
+            this.xScale.domain([0, maxTime + 1]);
+        } else {
+            this.xScale.domain([maxTime - this.timeWindowSize, maxTime + 1]);
+        }
 
         // Update x-axis
         this.xAxis.call(d3.axisBottom(this.xScale)

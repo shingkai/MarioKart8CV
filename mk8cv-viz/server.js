@@ -64,6 +64,7 @@ wss.on('connection', (ws) => {
     });
 });
 
+// TODO: figure out a better way to do this -- make sure the interval is terminated if ws is disconnected
 async function autoUpdateClient(ws, raceId) {
     setInterval(async () => {
         console.debug(`sending race data for ${raceId}`)
