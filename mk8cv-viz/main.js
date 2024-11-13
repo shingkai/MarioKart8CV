@@ -37,12 +37,12 @@ function connectWebSocket(raceId) {
                         item1: p.item_1,
                         item2: p.item_2
                     }));
-                    console.log('Formatted positions:', formattedPositions);
+                    console.log('Formatted positions:', JSON.stringify(formattedPositions));
                     raceTracker.updatePositions(formattedPositions);
                     break;
 
                 case 'racerMetadata':
-                    console.log(`racer: ${JSON.stringify(data.metadata)}`)
+                    console.log(JSON.stringify(data.metadata))
                     setRacers(data.metadata)
                     break;
 
@@ -72,17 +72,13 @@ function connectWebSocket(raceId) {
 }
 
 function setRacers(racer_metadata) {
-    console.log("setting racers...")
-    console.log(`processing: ${JSON.stringify(racer_metadata)}`)
-    console.log(typeof racer_metadata)
-
     const characterMap = new Map()
 
     for (const i in racer_metadata) {
         const racer = racer_metadata[i]
-        console.log(JSON.stringify(racer))
-        console.log(`P${racer.player_id}`)
-        console.log(racer.character)
+        console.debug(JSON.stringify(racer))
+        console.debug(`P${racer.player_id}`)
+        console.debug(racer.character)
 
         characterMap.set(`P${racer.player_id}`, `${racer.character}`)
     }

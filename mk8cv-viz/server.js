@@ -132,6 +132,7 @@ function broadcastRaceUpdate(raceId) {
 
 // API endpoint to receive updates from your computer vision system
 app.post('/api/racer-update', (req, res) => {
+    console.debug('call to /api/racer-update')
     const { raceId, timestamp, playerId, position, lap, coins, item1, item2 } = req.body;
 
     // Insert the new racer update

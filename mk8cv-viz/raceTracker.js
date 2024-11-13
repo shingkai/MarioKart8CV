@@ -1,14 +1,18 @@
-// raceTracker.js
 export class RaceTracker {
     constructor(containerId, options = {}) {
         this.container = d3.select(`#${containerId}`);
-        this.width = options.width || 400;
-        this.height = options.height || 700;
-        this.margin = options.margin || { top: 20, right: 20, bottom: 20, left: 20 };
-        this.circleRadius = options.circleRadius || 32;
-        this.circleSpacing = options.circleSpacing || 72;
-
+        this.width = options.width || 800;
+        this.height = options.height || 400;
+        this.margin = options.margin || { top: 20, right: 100, bottom: 30, left: 40 };
+        this.circleRadius = options.circleRadius || 24;
+        
+        // Initialize data storage for time series
+        this.timeSeriesData = new Map();
+        this.timeIndex = 0;
+        
         this.initializeSVG();
+        this.setupScales();
+        this.setupAxes();
     }
 
     initializeSVG() {
@@ -16,114 +20,209 @@ export class RaceTracker {
             .append('svg')
             .attr('width', this.width)
             .attr('height', this.height);
+
+        this.mainGroup = this.svg
+            .append('g')
+            .attr('transform', `translate(${this.margin.left},${this.margin.top})`);
     }
 
-    drawPositions() {
-        // Clear existing content
-        this.svg.selectAll('*').remove();
+    setupScales() {
+        this.innerWidth = this.width - this.margin.left - this.margin.right;
+        this.innerHeight = this.height - this.margin.top - this.margin.bottom;
 
-        // Add debug logging
-        // console.log('Drawing positions:', this.positions);
+        // X scale for time, with extra space for one more tick
+        this.xScale = d3.scaleLinear()
+            .range([0, this.innerWidth]);
 
-        // Create group for each racer
-        const racerGroups = this.svg.selectAll('g')
-            .data(this.positions, d => d.id)
-            .enter()
-            .append('g')
-            .attr('transform', (d, i) =>
-                `translate(${this.width/2}, ${this.margin.top + i * this.circleSpacing})`);
+        // Y scale for positions (fixed from 1 to 12, inverted)
+        this.yScale = d3.scaleLinear()
+            .domain([1, 12])
+            .range([0, this.innerHeight]);
+        
+        // Line generator
+        this.line = d3.line()
+            .x(d => this.xScale(d.time))
+            .y(d => this.yScale(d.position));
+    }
 
-        // Add background circle
-        racerGroups.append('circle')
-            .attr('r', this.circleRadius)
-            .attr('fill', '#1f2937')
-            .attr('stroke', '#374151')
-            .attr('stroke-width', 2);
+    setupAxes() {
+        const axisColor = '#9CA3AF';
 
-        console.log(this.characterMap)
+        // Create and style x-axis
+        this.xAxis = this.mainGroup.append('g')
+            .attr('class', 'x-axis')
+            .attr('transform', `translate(0,${this.innerHeight})`);
 
-        // Add character images with debug logging
-        racerGroups.append('image')
-            .attr('x', -this.circleRadius)
-            .attr('y', -this.circleRadius)
-            .attr('width', this.circleRadius * 2)
-            .attr('height', this.circleRadius * 2)
-            .attr('href', d => {
-                console.log('Processing player:', d);
-                const charName = this.characterMap.get(d.id);
-                console.log(this.characterMap)
-                console.log(charName)
-                if (!charName) {
-                    console.warn(`No character mapping found for player ${d.id}`);
-                    return ''; // Return empty string to prevent 404
-                }
-                const imagePath = `mario_kart_8_images/Character select icons/${charName}.png`;
-                // console.log('Image path:', imagePath);
-                return imagePath;
-            })
-            .attr('clip-path', 'circle()');
+        // Create and style y-axis
+        this.yAxis = this.mainGroup.append('g')
+            .attr('class', 'y-axis')
+            .call(d3.axisLeft(this.yScale)
+                .ticks(12)
+                .tickFormat(d3.format('d')));
 
-        // Add coin count
-        racerGroups.append('g')
-            .attr('transform', `translate(${this.circleRadius * 1.2}, ${-this.circleRadius * 0.5})`)
-            .call(g => {
-                g.append('circle')
-                    .attr('r', 12)
-                    .attr('fill', '#fbbf24');
-                g.append('text')
-                    .attr('text-anchor', 'middle')
-                    .attr('dy', '0.35em')
-                    .attr('fill', 'black')
-                    .attr('font-weight', 'bold')
-                    .attr('font-size', '12px')
-                    .text(d => d.coins || 0);
-            });
+        // Style both axes
+        this.svg.selectAll('.x-axis, .y-axis')
+            .attr('color', axisColor)
+            .selectAll('line, path')
+            .attr('stroke', axisColor);
 
-        // Add items with adjusted naming
-        racerGroups.each((d, i, nodes) => {
-            const g = d3.select(nodes[i]);
+        this.svg.selectAll('.x-axis text, .y-axis text')
+            .attr('fill', axisColor);
 
-            // Item 1
-            if (d.item1 && d.item1 !== 'NONE') {
-                const item1Name = d.item1; // Remove spaces from item names
-                g.append('image')
-                    .attr('x', -this.circleRadius * 1.8)
-                    .attr('y', -this.circleRadius * 0.75)
-                    .attr('width', this.circleRadius)
-                    .attr('height', this.circleRadius)
-                    .attr('href', `mario_kart_8_images/Items/${item1Name}.png`);
-            }
+        // Add and style labels
+        this.svg.append('text')
+            .attr('transform', 
+                `translate(${this.width/2},${this.height - 5})`)
+            .style('text-anchor', 'middle')
+            .attr('fill', axisColor)
+            // .text('Time');
 
-            // Item 2
-            if (d.item2 && d.item2 !== 'NONE') {
-                const item2Name = d.item2; // Remove spaces from item names
-                g.append('image')
-                    .attr('x', -this.circleRadius * 1.8)
-                    .attr('y', -this.circleRadius * 0.75 + this.circleRadius * 1.1)
-                    .attr('width', this.circleRadius)
-                    .attr('height', this.circleRadius)
-                    .attr('href', `mario_kart_8_images/Items/${item2Name}.png`);
-            }
-        });
+        this.svg.append('text')
+            .attr('transform', 'rotate(-90)')
+            .attr('y', 15)
+            .attr('x', -(this.height/2))
+            .style('text-anchor', 'middle')
+            .attr('fill', axisColor)
+            // .text('Position');
+    }
+
+    updateScales() {
+        // Update x scale domain to include one extra tick
+        const maxTime = this.timeIndex;
+        this.xScale.domain([0, maxTime + 1]);
+
+        // Update x-axis
+        this.xAxis.call(d3.axisBottom(this.xScale)
+            .ticks(maxTime + 1)
+            .tickFormat(d3.format('d')));
+        
+        // Maintain axis styling after update
+        const axisColor = '#9CA3AF';
+        this.svg.selectAll('.x-axis')
+            .attr('color', axisColor)
+            .selectAll('line, path')
+            .attr('stroke', axisColor);
+        
+        this.svg.selectAll('.x-axis text')
+            .attr('fill', axisColor);
     }
 
     updatePositions(newPositions) {
-        // console.log('Updating positions with:', newPositions);
+        this.timeIndex++;
+        
+        // Update time series data
+        newPositions.forEach((racer, index) => {
+            if (!this.timeSeriesData.has(racer.id)) {
+                this.timeSeriesData.set(racer.id, []);
+            }
+            
+            const racerData = this.timeSeriesData.get(racer.id);
+            racerData.push({
+                time: this.timeIndex,
+                position: racer.position,
+                coins: racer.coins,
+                items: [racer.item1, racer.item2].filter(item => item && item !== 'NONE')
+            });
+        });
 
-        this.positions = newPositions;
+        this.drawTimeSeries();
+    }
 
-        const transition = d3.transition()
-            .duration(500)
-            .ease(d3.easeBackOut);
+    drawTimeSeries() {
+        this.updateScales();
 
-        const groups = this.svg.selectAll('g')
-            .data(newPositions, d => d.id);
+        // Create color scale for racers
+        const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
 
-        groups.transition(transition)
-            .attr('transform', (d, i) =>
-                `translate(${this.width/2}, ${this.margin.top + i * this.circleSpacing})`);
+        // Draw lines
+        const lines = this.mainGroup.selectAll('.racer-line')
+            .data(Array.from(this.timeSeriesData.entries()), d => d[0]);
 
-        // Redraw everything to update coins and items
-        this.drawPositions();
+        // Update existing lines
+        lines.select('path')
+            .attr('d', d => this.line(d[1]));
+
+        // Enter new lines
+        const linesEnter = lines.enter()
+            .append('g')
+            .attr('class', 'racer-line');
+
+        linesEnter.append('path')
+            .attr('fill', 'none')
+            .attr('stroke', (d, i) => colorScale(i))
+            .attr('stroke-width', 2)
+            .attr('d', d => this.line(d[1]));
+
+        // Update markers (circles) for current position
+        const markers = this.mainGroup.selectAll('.current-position')
+            .data(Array.from(this.timeSeriesData.entries()), d => d[0]);
+
+        markers.enter()
+            .append('g')
+            .attr('class', 'current-position')
+            .merge(markers)
+            .each((d, i, nodes) => {
+                const g = d3.select(nodes[i]);
+                const currentData = d[1][d[1].length - 1];
+
+                // Remove existing elements
+                g.selectAll('*').remove();
+
+                // Add background circle
+                g.append('circle')
+                    .attr('r', this.circleRadius)
+                    .attr('cx', this.xScale(currentData.time))
+                    .attr('cy', this.yScale(currentData.position))
+                    .attr('fill', '#1f2937')
+                    .attr('stroke', '#374151')
+                    .attr('stroke-width', 2);
+
+                // Add character image
+                g.append('image')
+                    .attr('x', this.xScale(currentData.time) - this.circleRadius)
+                    .attr('y', this.yScale(currentData.position) - this.circleRadius)
+                    .attr('width', this.circleRadius * 2)
+                    .attr('height', this.circleRadius * 2)
+                    .attr('href', () => {
+                        const charName = this.characterMap.get(d[0]);
+                        return charName ? 
+                            `mario_kart_8_images/Character select icons/${charName}.png` : '';
+                    })
+                    .attr('clip-path', 'circle()');
+
+                // Add coins
+                if (currentData.coins) {
+                    const coinGroup = g.append('g')
+                        .attr('transform', 
+                            `translate(${this.xScale(currentData.time) + this.circleRadius * 1.2},
+                            ${this.yScale(currentData.position) - this.circleRadius * 0.5})`);
+                    
+                    coinGroup.append('circle')
+                        .attr('r', 12)
+                        .attr('fill', '#fbbf24');
+                    
+                    coinGroup.append('text')
+                        .attr('text-anchor', 'middle')
+                        .attr('dy', '0.35em')
+                        .attr('fill', 'black')
+                        .attr('font-weight', 'bold')
+                        .attr('font-size', '12px')
+                        .text(currentData.coins);
+                }
+
+                // Add items
+                currentData.items.forEach((item, idx) => {
+                    g.append('image')
+                        .attr('x', this.xScale(currentData.time) - this.circleRadius * 1.8)
+                        .attr('y', this.yScale(currentData.position) - this.circleRadius * 0.75 + 
+                            idx * this.circleRadius * 1.1)
+                        .attr('width', this.circleRadius)
+                        .attr('height', this.circleRadius)
+                        .attr('href', `mario_kart_8_images/Items/${item}.png`);
+                });
+            });
+
+        // Remove old markers
+        markers.exit().remove();
     }
 }

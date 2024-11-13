@@ -168,3 +168,10 @@ race_videos/
 
 # ignore generated data
 item_annotations.csv
+
+# ignore sqlite3 databases
+*.db
+
+# node artifacts
+node_modules/
+**/package-lock.json
