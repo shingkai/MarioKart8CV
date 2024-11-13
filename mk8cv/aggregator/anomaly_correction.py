@@ -1,7 +1,10 @@
 from abc import ABC, abstractmethod
+import logging
 
 from mk8cv.data.state import PlayerState, Item
 from db import Database
+
+logging.getLogger().setLevel(logging.DEBUG)
 
 class AnomalyCorrector(ABC):
     def __init__(self) -> None:
@@ -27,10 +30,10 @@ class SlidingWindowAnomalyCorrector(AnomalyCorrector):
         self.history: dict[int, dict[int, PlayerState]] = {} # playerId -> ( timestamp -> PlayerState )
 
     def correct_anomalies(self, timestamp: int, player_id: int, state: PlayerState) -> PlayerState:
-        # correct anomalies in PlayerState
+
         corrected_position = self.correctPosition(state.position, timestamp, player_id)
-        corrected_item1 = state.item1
-        corrected_item2 = state.item2
+        corrected_item1 : Item = state.item1
+        corrected_item2 : Item = state.item2
         corrected_coins = state.coins
         corrected_lap = state.lap
         corrected_race_laps = state.race_laps
@@ -41,23 +44,22 @@ class SlidingWindowAnomalyCorrector(AnomalyCorrector):
         if player_id not in self.history:
             self.history[player_id] = {}
         if timestamp not in self.history[player_id]:
-            self.history[player_id][timestamp] = state
+            self.history[player_id][timestamp] = corrected_state
 
         # check if the self.history has more than self.window_size entries. If it does, remove the oldest entries until it is the same size
-        while len(self.history) > self.window_size:
-            oldest_timestamp = min(self.history.keys())
-            del self.history[oldest_timestamp]
-
-        print(f'{len(self.history)} : {timestamp}')
+        while len(self.history[player_id]) > self.window_size:
+            oldest_timestamp = min(self.history[player_id].keys())
+            del self.history[player_id][oldest_timestamp]
 
         return corrected_state
     
 
     def correctPosition(self, position: int, timestamp: int, player_id: int) -> int:
+        # if position is 0 then us the previous position
         if position != 0:
             return position
         else:
-            previous_state = self.history[player_id][list(self.history.keys())[len(self.history) - 1]]
+            previous_state = self.history[player_id][list(self.history[player_id].keys())[len(self.history[player_id]) - 1]]
             corrected_position = previous_state.position
-            print(f"correcting position from 0 to {corrected_position}")
+            logging.debug(f"correcting position from 0 to {corrected_position}")
             return corrected_position

@@ -55,8 +55,8 @@ class EventAggregater:
                                       corrected_state.lap,
                                       corrected_state.position,
                                       corrected_state.coins,
-                                      corrected_state.item1,
-                                      corrected_state.item2)
+                                      corrected_state.item1.name,
+                                      corrected_state.item2.name)
 
 
 
