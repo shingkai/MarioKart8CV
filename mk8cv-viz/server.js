@@ -43,8 +43,8 @@ wss.on('connection', (ws) => {
                     // Send Racer Metadata
                     sendRacerMetadata(ws, data.raceId)
                     raceId = data.raceId
-                    // Send initial race data
-                    sendActiveRaceData(ws, raceId);
+                    // Periodically send race data
+                    autoUpdateClient(ws, data.raceId)
                     break;
             }
         } catch (error) {
@@ -63,6 +63,13 @@ wss.on('connection', (ws) => {
         clients.delete(ws);
     });
 });
+
+async function autoUpdateClient(ws, raceId) {
+    setInterval(async () => {
+        console.debug(`sending race data for ${raceId}`)
+        sendActiveRaceData(ws, raceId)
+    }, 1000); // send every 1000 ms
+}
 
 async function sendRacerMetadata(ws, raceId) {
     try {
@@ -122,10 +129,11 @@ async function sendActiveRaceData(ws, raceId) {
 }
 
 // Function to broadcast updates to all connected clients
+// TODO: we probably need to maintain a map of client -> raceId
 function broadcastRaceUpdate(raceId) {
     clients.forEach(client => {
         if (client.readyState === WebSocket.OPEN) {
-            sendActiveRaceData(client);
+            sendActiveRaceData(client, raceId);
         }
     });
 }

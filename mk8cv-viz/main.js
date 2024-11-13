@@ -103,7 +103,8 @@ document.addEventListener('DOMContentLoaded', () => {
         height: 700,
         margin: { top: 40, right: 40, bottom: 40, left: 40 },
         circleRadius: 32,
-        circleSpacing: 72
+        circleSpacing: 72,
+        timeWindowSize: 10
     });
 
     controls = new RaceControls(

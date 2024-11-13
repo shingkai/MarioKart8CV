@@ -5,6 +5,7 @@ export class RaceTracker {
         this.height = options.height || 400;
         this.margin = options.margin || { top: 20, right: 20, bottom: 20, left: 20 };
         this.circleRadius = options.circleRadius || 24;
+        this.timeWindowSize = options.timeWindowSize || 20;
         
         // Initialize data storage for time series
         this.timeSeriesData = new Map();
@@ -104,6 +105,9 @@ export class RaceTracker {
                 coins: racer.coins,
                 items: [racer.item1, racer.item2].filter(item => item && item !== 'NONE')
             });
+            if (racerData.length > this.timeWindowSize) {
+                racerData.shift()
+            }
         });
 
         this.drawTimeSeries();
