@@ -79,8 +79,8 @@ export class RaceTracker {
 
         // Update x-axis
         this.xAxis.call(d3.axisBottom(this.xScale)
-            .ticks(maxTime + 1)
-            .tickFormat(d3.format('d')));
+            .ticks(maxTime < this.timeWindowSize ? maxTime + 1 : this.timeWindowSize + 1)
+            .tickFormat(""));
         
         // Maintain axis styling after update
         const axisColor = '#9CA3AF';
