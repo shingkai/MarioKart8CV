@@ -130,6 +130,16 @@ class PlayerState:
             race_laps=3
         )
 
+    def __eq__(self, other):
+        if isinstance(other, PlayerState):
+            return (self.lap == other.lap and
+                    self.race_laps == other.race_laps and
+                    self.position == other.position and
+                    self.item1.name == other.item1.name and
+                    self.item2.name == other.item2.name and
+                    self.coins == other.coins)
+        return False
+
     def __repr__(self):
         return json.dumps({
             Stat.POSITION: self.position,

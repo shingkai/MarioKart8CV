@@ -19,7 +19,8 @@ class EventAggregater:
         self.redis_client = redis.Redis(host=host, port=port, db=0)
         self.channel = channel
         self.database: Database = SqliteDB()
-        self.anomalyCorrector: AnomalyCorrector = SlidingWindowAnomalyCorrector(self.database, window_size=5);
+        self.anomaly_corrector: AnomalyCorrector = SlidingWindowAnomalyCorrector(self.database, window_size=9);
+        self.previous_state: dict[int, PlayerState] = {} # playerId -> PlayerState
 
 
     def listen(self) -> None:
@@ -41,15 +42,19 @@ class EventAggregater:
             player_data = event[key]
             player_id = device_id * 2 + i
 
+            if player_id not in self.previous_state:
+                self.previous_state[player_id] = None
+
             player_state = PlayerState( player_data['position'],
                                         Item[player_data['item1']],
                                         Item[player_data['item2']],
                                         player_data['coins'],
                                         player_data['lap'])
             
-            corrected_state = self.anomalyCorrector.correct_anomalies(frame_number, player_id, player_state)
+            corrected_state = self.anomaly_corrector.correct_anomalies(frame_number, player_id, player_state)
 
-            if (corrected_state):
+            # if corrected_state is not None and differs from the previous_state, publish it and set it as the new previous_state
+            if (corrected_state and self.previous_state[player_id] != corrected_state):
                 self.database.write_event(race_id,
                                         frame_number,
                                         player_id,
@@ -58,6 +63,7 @@ class EventAggregater:
                                         corrected_state.coins,
                                         corrected_state.item1.name,
                                         corrected_state.item2.name)
+                self.previous_state[player_id] = corrected_state
 
 
 
