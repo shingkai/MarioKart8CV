@@ -4,6 +4,7 @@ const WebSocket = require('ws');
 const http = require('http');
 const cors = require('cors');
 const path = require('path');
+const fs = require("node:fs");
 
 // Express setup
 const app = express();
@@ -74,11 +75,11 @@ async function autoUpdateClient(ws, raceId) {
 
 async function sendRacerMetadata(ws, raceId) {
     try {
-        console.debug(`fetching racer metadata for raceId: ${raceId}`)
-        db.all('SELECT * from racer_metadata where race_id = ?;', [raceId], (err, racerMetadata) => {
+        console.debug(`fetching racer metadata`)
+        db.all('SELECT * from racer_metadata;', (err, racerMetadata) => {
             if (err || !racerMetadata) {
                 console.error(racerMetadata)
-                ws.send(JSON.stringify({ type: 'error', message: `No race with id ${raceId} found` }));
+                ws.send(JSON.stringify({ type: 'error', message: `Error fetching racer metadata: ${err.message}` }));
                 return;
             }
             console.log(`sending ${JSON.stringify(racerMetadata)}`)
@@ -163,6 +164,84 @@ app.post('/api/racer-update', (req, res) => {
         res.json({ success: true });
     });
 });
+
+app.get('/api/racer-metadata', (req, res) => {
+    console.log('Fetching racer metadata');
+
+    db.all('SELECT * FROM racer_metadata', (err, rows) => {
+        if (err) {
+            console.error('Error fetching racer metadata:', err);
+            res.status(500).json({ error: err.message });
+            return;
+        }
+        console.log('Racer metadata:', rows);
+        res.json(rows);
+    });
+});
+
+// Add or update racer metadata
+app.post('/api/racer-metadata', (req, res) => {
+    console.log('Saving racer metadata:', req.body);
+    const { deviceId, player1Name, player1Character, player2Name, player2Character } = req.body;
+
+    // Calculate player IDs
+    const player1Id = deviceId * 2;
+    const player2Id = deviceId * 2 + 1;
+
+    // Use a transaction to insert both players
+    db.serialize(() => {
+        db.run('BEGIN TRANSACTION');
+
+        try {
+            // Insert or update player 1
+            db.run(`
+                INSERT INTO racer_metadata (player_id, device_id, device_player_num, player_name, character)
+                VALUES (?, ?, 1, ?, ?)
+                ON CONFLICT(player_id) 
+                DO UPDATE SET
+                    device_id = excluded.device_id,
+                    device_player_num = excluded.device_player_num,
+                    player_name = excluded.player_name,
+                    character = excluded.character
+            `, [player1Id, deviceId, player1Name, player1Character]);
+
+            // Insert or update player 2
+            db.run(`
+                INSERT INTO racer_metadata (player_id, device_id, device_player_num, player_name, character)
+                VALUES (?, ?, 2, ?, ?)
+                ON CONFLICT(player_id) 
+                DO UPDATE SET
+                    device_id = excluded.device_id,
+                    device_player_num = excluded.device_player_num,
+                    player_name = excluded.player_name,
+                    character = excluded.character
+            `, [player2Id, deviceId, player2Name, player2Character]);
+
+            db.run('COMMIT');
+            res.json({ success: true });
+        } catch (error) {
+            db.run('ROLLBACK');
+            console.error('Error saving racer metadata:', error);
+            res.status(500).json({ error: error.message });
+        }
+    });
+});
+
+app.get('/api/characters', async (req, res) => {
+    try {
+        const directoryPath = path.join(__dirname, './mario_kart_8_images/Character select icons');
+        console.log('Reading characters directory:', directoryPath);
+        const files = await fs.promises.readdir(directoryPath);
+        const characters = files
+            .filter(file => file.endsWith('.png'))
+            .map(file => file.replace('.png', ''));
+        res.json(characters);
+    } catch (error) {
+        console.error('Error reading characters directory:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {

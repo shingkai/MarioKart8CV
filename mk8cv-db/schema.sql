@@ -7,13 +7,12 @@ CREATE TABLE IF NOT EXISTS race_metadata (
 );
 
 CREATE TABLE IF NOT EXISTS racer_metadata (
-    race_id INT NOT NULL,
     player_id INT NOT NULL,
     device_id INT NOT NULL,
     device_player_num INT NOT NULL,
     player_name TEXT NOT NULL,
     character TEXT NOT NULL,
-    PRIMARY KEY (race_id, player_id)
+    PRIMARY KEY (player_id)
 );
 
 CREATE TABLE IF NOT EXISTS race_data (

@@ -3,56 +3,10 @@
 <head>
     <title>Mario Kart Race Tracker</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body {
-            margin: 0;
-            font-family: system-ui, -apple-system, sans-serif;
-        }
-        .race-tracker {
-            background: #1f2937;
-            border-radius: 8px;
-            padding: 8px;
-        }
-        .controls {
-            background: #1f2937;
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 16px;
-            width: 256px;
-        }
-        .btn {
-            padding: 8px 16px;
-            border-radius: 8px;
-            border: none;
-            font-weight: bold;
-            color: white;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        .btn-start { background: #22c55e; }
-        .btn-start:hover { background: #16a34a; }
-        .btn-stop { background: #ef4444; }
-        .btn-stop:hover { background: #dc2626; }
-        .btn-scenario {
-            width: 100%;
-            margin-bottom: 8px;
-            background: #4b5563;
-        }
-        .btn-scenario:hover { background: #374151; }
-        .btn-scenario.active { background: #3b82f6; }
-        .speed-control {
-            margin-top: 16px;
-            padding: 8px;
-            color: white;
-        }
-
-        .speed-slider {
-            width: 100%;
-            margin: 8px 0;
-        }
-
         /* Styling for the range input */
         input[type="range"] {
             -webkit-appearance: none;
@@ -83,14 +37,25 @@
             font-size: 14px;
             color: #9ca3af;
         }
+
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: #111827;
+            color: white;
+        }
     </style>
 </head>
-<body>
-    <div id="controls" class="controls"></div>
-    <div id="race-tracker" class="race-tracker"></div>
-    <div id="race-progress" class="race-progress"></div>
-    <script type="module" src="raceTracker.js"></script>
-    <script type="module" src="controls.js"></script>
-    <script type="module" src="main.js"></script>
-</body>
+<div id="root"></div>
+    <script type="module">
+        // Import React from CDN
+        const React = window.React;
+        const ReactDOM = window.ReactDOM;
+
+        // Now import your components
+        import TabNavigation from './TabNavigation.js';
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(React.createElement(TabNavigation));
+    </script>
 </html>

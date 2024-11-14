@@ -69,6 +69,9 @@ class SlidingWindowAnomalyCorrector(AnomalyCorrector):
         if position != 0:
             return position
         else:
+            if player_id not in self.history:
+                logging.debug(f"player_id {player_id} not in history")
+                return position
             previous_state = self.history[player_id][list(self.history[player_id].keys())[len(self.history[player_id]) - 1]]
             corrected_position = previous_state.position
             logging.debug(f"correcting position from 0 to {corrected_position}")

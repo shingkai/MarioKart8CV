@@ -174,6 +174,7 @@ export class RaceTracker {
                     .attr('height', this.circleRadius * 2)
                     .attr('href', () => {
                         const charName = this.characterMap.get(d[0]);
+                        console.log(`Character name: ${charName}`);
                         return charName ? 
                             `mario_kart_8_images/Character select icons/${charName}.png` : '';
                     })

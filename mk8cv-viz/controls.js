@@ -8,7 +8,22 @@ export class RaceControls {
         this.initializeControls();
     }
 
+    cleanup() {
+        // Remove event listeners and clean up any resources
+        if (this.startStopButton) {
+            this.startStopButton.onclick = null;
+        }
+        if (this.container) {
+            this.container.innerHTML = '';
+        }
+    }
+
     initializeControls() {
+        // Clear existing content
+        if (this.container) {
+            this.container.innerHTML = '';
+        }
+
         // Start/Stop button
         const startStopButton = document.createElement('button');
         startStopButton.className = 'btn btn-start';
