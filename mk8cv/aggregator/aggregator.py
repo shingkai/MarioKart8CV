@@ -19,7 +19,7 @@ class EventAggregater:
         self.redis_client = redis.Redis(host=host, port=port, db=0)
         self.channel = channel
         self.database: Database = SqliteDB()
-        self.anomalyCorrector: AnomalyCorrector = SlidingWindowAnomalyCorrector(self.database);
+        self.anomalyCorrector: AnomalyCorrector = SlidingWindowAnomalyCorrector(self.database, window_size=5);
 
 
     def listen(self) -> None:
@@ -49,14 +49,15 @@ class EventAggregater:
             
             corrected_state = self.anomalyCorrector.correct_anomalies(frame_number, player_id, player_state)
 
-            self.database.write_event(race_id,
-                                      frame_number,
-                                      player_id,
-                                      corrected_state.lap,
-                                      corrected_state.position,
-                                      corrected_state.coins,
-                                      corrected_state.item1.name,
-                                      corrected_state.item2.name)
+            if (corrected_state):
+                self.database.write_event(race_id,
+                                        frame_number,
+                                        player_id,
+                                        corrected_state.lap,
+                                        corrected_state.position,
+                                        corrected_state.coins,
+                                        corrected_state.item1.name,
+                                        corrected_state.item2.name)
 
 
 

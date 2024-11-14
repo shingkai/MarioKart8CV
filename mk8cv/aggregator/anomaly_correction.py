@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 import logging
+from collections import Counter
 
 from mk8cv.data.state import PlayerState, Item
 from db import Database
@@ -20,7 +21,7 @@ class SlidingWindowAnomalyCorrector(AnomalyCorrector):
     A sliding-window based approach to anomaly correction. For a given player, a sliding
     window is maintained and used to detect anomolous values, using the following rules:
     - if a non-item value is None, use the previous value
-    - if lap
+
 
     """
 
@@ -46,12 +47,21 @@ class SlidingWindowAnomalyCorrector(AnomalyCorrector):
         if timestamp not in self.history[player_id]:
             self.history[player_id][timestamp] = corrected_state
 
-        # check if the self.history has more than self.window_size entries. If it does, remove the oldest entries until it is the same size
+        # check if the self.history[player_id] has more than self.window_size entries. If it does, remove the oldest entries until it is the same size
         while len(self.history[player_id]) > self.window_size:
             oldest_timestamp = min(self.history[player_id].keys())
             del self.history[player_id][oldest_timestamp]
 
-        return corrected_state
+        published_state = PlayerState(
+            Counter(past_state.position for past_state in self.history[player_id].values()).most_common(1)[0][0],
+            Counter(past_state.item1 for past_state in self.history[player_id].values()).most_common(1)[0][0],
+            Counter(past_state.item2 for past_state in self.history[player_id].values()).most_common(1)[0][0],
+            Counter(past_state.coins for past_state in self.history[player_id].values()).most_common(1)[0][0],
+            Counter(past_state.lap for past_state in self.history[player_id].values()).most_common(1)[0][0],
+            Counter(past_state.race_laps for past_state in self.history[player_id].values()).most_common(1)[0][0]
+        )
+
+        return published_state
     
 
     def correctPosition(self, position: int, timestamp: int, player_id: int) -> int:
