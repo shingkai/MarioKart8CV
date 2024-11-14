@@ -1,7 +1,7 @@
 # MarioKart8CV
 A project to take in MarioKart 8 videos and generate race stats using computer vision
 
-# 0. Development Setup
+# Development Setup
 ## Ubuntu/Debian
 
 ## macOS
@@ -13,7 +13,7 @@ pip3 install -r requirements.txt
 
 ```
 
-# 1. Install Redis
+# Dependencies
 ## Ubuntu/Debian
 ```
 sudo apt-get update
@@ -28,26 +28,42 @@ brew install redis
 ## Windows
 Download the Redis installer from https://github.com/microsoftarchive/redis/releases
 
-# 2. Start Redis server
+# Setup
 ## Ubuntu/Debian
 ```
 sudo systemctl start redis-server
+source .venv/bin/activate
+python ./mk8cv/main.py --resolution 1920x1080 --threads 1 --queue-size 1000 --num-devices 1 --frame-skip 8 --race-id 1
+python ./mk8cv/aggregator/aggregator.py
+cd ./mk8cv-viz
+npm install
+node server.js
 ```
 
 ## macOS
 ```
 brew services start redis
+source .venv/bin/activate
+python ./mk8cv/main.py --resolution 1920x1080 --threads 1 --queue-size 1000 --num-devices 1 --frame-skip 8 --race-id 1
+python ./mk8cv/aggregator/aggregator.py
+cd ./mk8cv-viz
+npm install
+node server.js
 ```
 
 ## Windows
-Run redis-server.exe from the installation directory
-
-# 3. Install Python Redis client
- ```
- pip install redis
+Run `redis-server.exe` from the installation directory
+```
+source .venv\Scripts\activate
+python .\mk8cv\main.py --resolution 1920x1080 --threads 1 --queue-size 1000 --num-devices 1 --frame-skip 8 --race-id 1
+python .\mk8cv\aggregator\aggregator.py
+cd .\mk8cv-viz
+npm install
+node server.js
 ```
 
-# 4. Test Redis connection
+
+# Troubleshooting
 ```
 redis-cli ping
 ```

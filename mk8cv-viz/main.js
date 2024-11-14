@@ -42,7 +42,7 @@ function connectWebSocket(raceId) {
                     break;
 
                 case 'racerMetadata':
-                    console.log(JSON.stringify(data.metadata))
+                    console.log('Racer metadata:', JSON.stringify(data.metadata))
                     setRacers(data.metadata)
                     break;
 

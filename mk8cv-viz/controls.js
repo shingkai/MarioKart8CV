@@ -28,6 +28,7 @@ export class RaceControls {
     }
 
     toggleRace() {
+        console.log(`toggleRace: ${this.isRacing}`);
         if (this.isRacing) {
             this.startStopButton.className = 'btn btn-stop';
             this.startStopButton.textContent = 'Stop Race';

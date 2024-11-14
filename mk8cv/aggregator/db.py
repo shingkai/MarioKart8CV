@@ -31,10 +31,23 @@ class Database(ABC):
                            num_rows: int = 1) -> list[PlayerState]:
         pass
 
-class SqliteDB:
-    def __init__(self, db_file: str = 'mk8cv.db', race_data_table: str = 'race_data') -> None:
+class SqliteDB(Database):
+    def __init__(self, db_file: str = 'mk8cv.db', schema_file: str = r'./mk8cv-db/schema.sql',
+                 race_data_table: str = 'race_data') -> None:
+        super().__init__()
         self.db_file = db_file
         self.race_data_table = race_data_table
+        self.create_tables(schema_file)
+
+    def create_tables(self, schema_file: str):
+        logging.info(f"Creating tables from schema file {schema_file}")
+        with self.get_connections() as conn:
+            cursor = conn.cursor()
+
+            with open(schema_file, 'r') as f:
+                cursor.executescript(f.read())
+            conn.commit()
+        logging.info("Tables created")
 
     @contextmanager
     def get_connections(self):

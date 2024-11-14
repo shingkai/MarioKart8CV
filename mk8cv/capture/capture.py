@@ -1,4 +1,6 @@
 import logging
+import platform
+
 import cv2
 from multiprocessing import Event, Queue
 from queue import Full
@@ -18,7 +20,12 @@ def capture_and_process(
     logging.getLogger().setLevel(logging.INFO)
     logging.info(f"Starting capture process for device {device_id}...")
 
-    cap = cv2.VideoCapture(source)
+    if platform.uname().system == 'Windows':
+        logging.info("Using cv2.CAP_DSHOW for Windows")
+        cap = cv2.VideoCapture(source, cv2.CAP_DSHOW)
+    else:
+        logging.info("Using default cv2.VideoCapture")
+        cap = cv2.VideoCapture(source)
     if not cap.isOpened():
         logging.error(f"Error opening video source: {source}")
         stop_event.set()
@@ -29,6 +36,7 @@ def capture_and_process(
     if isinstance(source, int):  # Real device
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+        cap.set(cv2.CAP_PROP_FPS, fps)
     else:  # Video file
         frame_time = 1 / fps if fps else 0
 

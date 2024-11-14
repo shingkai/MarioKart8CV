@@ -9,10 +9,12 @@ from mk8cv.aggregator.anomaly_correction import AnomalyCorrector, SlidingWindowA
 from mk8cv.data.state import PlayerState, Item
 from db import Database, SqliteDB
 
+import signal
+
 logging.getLogger().setLevel(logging.DEBUG)
 
 
-class EventAggregater:
+class EventAggregator:
     def __init__(self, host: str, port: int, channel: str) -> None:
         self.host = host
         self.port = port
@@ -21,17 +23,35 @@ class EventAggregater:
         self.database: Database = SqliteDB()
         self.anomaly_corrector: AnomalyCorrector = SlidingWindowAnomalyCorrector(self.database, window_size=9);
         self.previous_state: dict[int, PlayerState] = {} # playerId -> PlayerState
+        self.running = True
 
+        # Set up signal handlers
+        signal.signal(signal.SIGINT, self._signal_handler)
+        signal.signal(signal.SIGTERM, self._signal_handler)
+
+    def _signal_handler(self, signum, _):
+        """Handle shutdown signals"""
+        logging.info(f"Received signal {signum}. Shutting down...")
+        self.running = False
 
     def listen(self) -> None:
+        logging.info(f"Listening on {self.host}:{self.port} on channel {self.channel}")
+        logging.info(f"redis_client.ping(): {self.redis_client.ping()}")
         pubsub = self.redis_client.pubsub()
         pubsub.subscribe(self.channel)
 
-        for message in pubsub.listen():
-            if message['type'] == 'message':
-                logging.debug(f"Message received {message}")
-                self._process_event(json.loads(message['data']))
-
+        try:
+            while self.running:
+                message = pubsub.get_message(timeout=1.0)  # Use timeout to check running flag periodically
+                if message and message['type'] == 'message':
+                    logging.debug(f"Message received {message}")
+                    self._process_event(json.loads(message['data']))
+        finally:
+            # Clean up
+            pubsub.unsubscribe()
+            pubsub.close()
+            self.redis_client.close()
+            logging.info("Cleaned up Redis connections")
 
     def _process_event(self, event: dict[str, Any]) -> None:
         race_id = event['race_id']
@@ -55,6 +75,7 @@ class EventAggregater:
 
             # if corrected_state is not None and differs from the previous_state, publish it and set it as the new previous_state
             if (corrected_state and self.previous_state[player_id] != corrected_state):
+                logging.debug(f"Writing event for race {race_id}, frame {frame_number}, player {player_id}")
                 self.database.write_event(race_id,
                                         frame_number,
                                         player_id,
@@ -64,7 +85,6 @@ class EventAggregater:
                                         corrected_state.item1.name,
                                         corrected_state.item2.name)
                 self.previous_state[player_id] = corrected_state
-
 
 
 def main():
@@ -78,7 +98,7 @@ def main():
 
     args = parser.parse_args()
 
-    aggregator = EventAggregater(args.host, args.port, args.channel)
+    aggregator = EventAggregator(args.host, args.port, args.channel)
 
     try:
         aggregator.listen()

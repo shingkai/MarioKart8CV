@@ -15,7 +15,7 @@ app.use(express.json());
 app.use(express.static('public'));
 
 // Connect to SQLite database
-const db = new sqlite3.Database('mk8cv.db', (err) => {
+const db = new sqlite3.Database('../mk8cv.db', (err) => {
     if (err) {
         console.error('Error connecting to database:', err);
     } else {
